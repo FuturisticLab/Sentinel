@@ -1,0 +1,2241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel-HSTS // Impact Orchestrator</title>
+    
+    <!-- Google Fonts Outfit & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS variables for consistent, premium palette */
+        :root {
+            --bg-base: #060203;
+            --bg-surface: #0e0507;
+            --bg-card: #150709;
+            --bg-input: #0a0304;
+            --border-color: rgba(0, 255, 102, 0.18);
+            --border-glow: rgba(0, 255, 102, 0.28);
+            
+            --color-text: #e6f4ea;
+            --color-muted: #7ba087;
+            --color-cyan: #00ffd5;
+            --color-primary: #00ff66;
+            --color-mint: #00ff87;
+            --color-magenta: #ff2a5f;
+            --color-yellow: #fddb24;
+            --color-navy: #0b1a10;
+            
+            --font-main: 'Outfit', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            
+            --shadow-glow: 0 0 25px rgba(0, 255, 102, 0.25);
+            --shadow-magenta: 0 0 25px rgba(255, 42, 95, 0.35);
+            --shadow-mint: 0 0 25px rgba(0, 255, 135, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--color-text);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 30, 56, 0.08) 0%, rgba(6, 2, 3, 0) 70%);
+            top: -200px;
+            right: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .ambient-glow-left {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 51, 75, 0.05) 0%, rgba(6, 2, 3, 0) 70%);
+            bottom: -200px;
+            left: -200px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 1440px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px;
+            position: relative;
+            z-index: 1;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Header block */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-shield {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #ff1e38 0%, #a21237 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 25px rgba(255, 30, 56, 0.45);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .logo-shield svg {
+            width: 24px;
+            height: 24px;
+            fill: var(--bg-base);
+        }
+
+        .title-group h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #fce8ea);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .title-group h1 span {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(255, 30, 56, 0.15);
+            color: #ff4d66;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 30, 56, 0.35);
+        }
+
+        .title-group p {
+            color: var(--color-muted);
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        .global-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        /* Console and Scanning input */
+        .scan-bar {
+            display: flex;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 10px;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .scan-bar:focus-within {
+            border-color: var(--color-primary);
+            box-shadow: var(--border-glow);
+        }
+
+        .input-wrapper {
+            position: relative;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-wrapper svg {
+            position: absolute;
+            left: 16px;
+            fill: var(--color-muted);
+            width: 18px;
+            height: 18px;
+        }
+
+        .scan-bar input {
+            width: 100%;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px 16px 14px 46px;
+            color: white;
+            font-family: var(--font-code);
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .scan-bar input:focus {
+            border-color: rgba(56, 189, 248, 0.5);
+            background: var(--bg-base);
+        }
+
+        button {
+            padding: 14px 28px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            font-family: var(--font-main);
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-primary) 100%);
+            color: var(--bg-base);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            border-color: var(--color-muted);
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 24px;
+        }
+
+        /* Left Column Sidebar Panels */
+        .side-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-title svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--color-primary);
+        }
+
+        /* Circular Score Indicator */
+        .score-circle-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 0;
+            position: relative;
+        }
+
+        .score-svg {
+            transform: rotate(-90deg);
+            width: 160px;
+            height: 160px;
+        }
+
+        .score-track {
+            fill: none;
+            stroke: var(--bg-card);
+            stroke-width: 12;
+        }
+
+        .score-progress {
+            fill: none;
+            stroke: var(--color-mint);
+            stroke-width: 12;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 1s ease;
+        }
+
+        .score-text-container {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-num {
+            font-size: 42px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .score-lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-muted);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .status-badge-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-label {
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-secure { background: rgba(0, 255, 135, 0.15); color: var(--color-mint); border: 1px solid rgba(0, 255, 135, 0.3); }
+        .badge-warning { background: rgba(253, 219, 36, 0.15); color: var(--color-yellow); border: 1px solid rgba(253, 219, 36, 0.3); }
+        .badge-danger { background: rgba(255, 42, 95, 0.15); color: var(--color-magenta); border: 1px solid rgba(255, 42, 95, 0.3); }
+        
+        /* Event Log console */
+        .console-log {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            height: 180px;
+            overflow-y: auto;
+            padding: 12px;
+            font-family: var(--font-code);
+            font-size: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .console-line {
+            color: var(--color-muted);
+            line-height: 1.4;
+            display: flex;
+            gap: 8px;
+        }
+
+        .console-line span.timestamp {
+            color: rgba(56, 189, 248, 0.5);
+            flex-shrink: 0;
+        }
+
+        .console-line span.text-ok { color: var(--color-mint); }
+        .console-line span.text-warn { color: var(--color-yellow); }
+        .console-line span.text-err { color: var(--color-magenta); }
+        .console-line span.text-info { color: var(--color-cyan); }
+
+        /* Wizard Range slider */
+        .wizard-slider-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .slider-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        .slider-meta .duration {
+            color: var(--color-cyan);
+            font-weight: 700;
+        }
+
+        .slider-meta .step-name {
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Custom styling range input */
+        .range-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: var(--bg-card);
+            border-radius: 4px;
+            outline: none;
+            border: 1px solid var(--border-color);
+        }
+
+        .range-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--color-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+            border: 2px solid white;
+            transition: transform 0.1s ease;
+        }
+
+        .range-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        .ticks-labels {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 2px;
+        }
+
+        .ticks-labels span {
+            font-size: 10px;
+            color: var(--color-muted);
+            cursor: pointer;
+        }
+        
+        .ticks-labels span.active {
+            color: white;
+            font-weight: 700;
+        }
+
+        /* Simulation Override panel */
+        .simulation-toggles {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 12px;
+            color: var(--color-muted);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .toggle-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        .toggle-btn.active {
+            border-color: var(--color-mint);
+            color: var(--color-mint);
+            background: rgba(0, 255, 135, 0.05);
+        }
+        
+        .toggle-btn.insecure {
+            border-color: var(--color-magenta);
+            color: var(--color-magenta);
+            background: rgba(255, 42, 95, 0.05);
+        }
+
+        /* Right Column - Map and Dashboard Details */
+        .main-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Topography map panel */
+        .map-card {
+            flex-grow: 1;
+            min-height: 460px;
+            position: relative;
+        }
+
+        .canvas-container {
+            width: 100%;
+            height: 380px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        
+        canvas:active {
+            cursor: grabbing;
+        }
+
+        .map-overlay-legend {
+            position: absolute;
+            bottom: 35px;
+            right: 35px;
+            background: rgba(14, 19, 32, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            font-size: 11px;
+            z-index: 10;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--color-text);
+        }
+
+        .legend-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+
+        /* Browser Compatibility Grid */
+        .browser-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+
+        .browser-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .browser-card:hover {
+            border-color: rgba(56, 189, 248, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .browser-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .browser-icon svg {
+            width: 28px;
+            height: 28px;
+        }
+
+        .browser-info {
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .browser-name {
+            font-size: 13px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .browser-status {
+            font-size: 11px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+        
+        .status-supported { color: var(--color-mint); }
+        .status-unsupported { color: var(--color-magenta); }
+        .status-partial { color: var(--color-yellow); }
+
+        .browser-badge {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Config Snippets and Governance Tab Panel */
+        .tabs-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+        }
+
+        .tabs-nav {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            gap: 16px;
+        }
+
+        .tab-btn {
+            background: none;
+            border: none;
+            color: var(--color-muted);
+            padding: 10px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+            border-radius: 0;
+        }
+
+        .tab-btn:hover {
+            color: white;
+        }
+
+        .tab-btn.active {
+            color: var(--color-cyan);
+            border-bottom-color: var(--color-cyan);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .code-container {
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .code-container pre {
+            font-family: var(--font-code);
+            font-size: 13px;
+            color: #38bdf8;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 6px 12px;
+            font-size: 11px;
+            border-radius: 6px;
+            color: var(--color-text);
+            font-weight: 600;
+        }
+        
+        .copy-btn:hover {
+            background: var(--border-color);
+            color: white;
+        }
+
+        /* Interactive Governance Policy Document UI */
+        .policy-document {
+            background: white;
+            color: #0f172a;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            line-height: 1.6;
+            max-height: 380px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+        }
+
+        .policy-document h2 {
+            text-align: center;
+            font-size: 22px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 25px;
+            border-bottom: 2px solid #0f172a;
+            padding-bottom: 12px;
+        }
+
+        .policy-document h3 {
+            font-size: 15px;
+            font-weight: 700;
+            margin: 20px 0 8px 0;
+            color: #1e293b;
+        }
+
+        .policy-document p, .policy-document ul {
+            font-size: 13px;
+            margin-bottom: 12px;
+            color: #334155;
+        }
+
+        .policy-document ul {
+            padding-left: 20px;
+        }
+
+        .policy-meta {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 14px;
+            margin-bottom: 20px;
+            font-size: 12px;
+        }
+
+        .policy-meta p {
+            margin-bottom: 0;
+        }
+
+        .policy-signatures {
+            margin-top: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+        }
+
+        .signature-line {
+            border-top: 1px solid #64748b;
+            padding-top: 8px;
+            font-size: 11px;
+            color: #64748b;
+            font-weight: 600;
+        }
+
+        /* Floating Info Bar */
+        .info-bar {
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, rgba(255, 42, 95, 0.02) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .info-bar svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--color-cyan);
+            flex-shrink: 0;
+        }
+
+        .info-bar strong {
+            color: white;
+        }
+
+        /* Float Animation */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+            100% { transform: translateY(0px); }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--color-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        /* Collapsible Info Drawer & Toggle Button */
+        .info-btn {
+            background: none;
+            border: none;
+            color: var(--color-muted);
+            cursor: pointer;
+            padding: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        .info-btn:hover, .info-btn.active {
+            color: var(--color-cyan);
+            background: rgba(0, 255, 213, 0.08);
+            box-shadow: 0 0 8px rgba(0, 255, 213, 0.2);
+        }
+        .info-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .info-explanation-drawer {
+            display: none;
+            background: rgba(8, 17, 11, 0.85);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--color-text);
+            box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.03);
+            animation: drawerFadeIn 0.3s ease;
+        }
+        .info-explanation-drawer strong {
+            color: var(--color-cyan);
+        }
+        @keyframes drawerFadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* NATIVE PDF PRINT MEDIA QUERY */
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+                font-family: 'Inter', sans-serif !important;
+                padding: 0 !important;
+            }
+
+            .ambient-glow, .ambient-glow-left, .scan-bar, .wizard-slider-container, 
+            .simulation-toggles, .tabs-nav, .copy-btn, .global-actions, header, footer,
+            .info-btn, .info-explanation-drawer {
+                display: none !important;
+            }
+
+            .app-container {
+                padding: 0 !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+
+            .card {
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                background: white !important;
+                color: black !important;
+                page-break-inside: avoid;
+            }
+
+            .card-title, h2, h3, .score-num {
+                color: black !important;
+            }
+            
+            .score-circle-wrapper {
+                margin: 10px auto !important;
+            }
+
+            .score-track {
+                stroke: #f1f5f9 !important;
+            }
+
+            .score-progress {
+                stroke: #10b981 !important;
+            }
+
+            .console-log {
+                border: 1px solid #cbd5e1 !important;
+                background: #f8fafc !important;
+                color: #334155 !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+            
+            .console-line {
+                color: #334155 !important;
+            }
+
+            .canvas-container {
+                border: 1px solid #94a3b8 !important;
+                background: #f8fafc !important;
+                height: 320px !important;
+                page-break-inside: avoid;
+            }
+
+            .policy-document {
+                border: 1px solid #94a3b8 !important;
+                box-shadow: none !important;
+                max-height: none !important;
+                overflow: visible !important;
+                background: white !important;
+                color: black !important;
+                page-break-before: always;
+            }
+
+            .watermark-pdf-header {
+                display: block !important;
+                text-align: center;
+                border-bottom: 2px solid black;
+                padding-bottom: 12px;
+                margin-bottom: 30px;
+            }
+
+            .watermark-pdf-header h1 {
+                font-size: 24px;
+                font-weight: 800;
+                color: black;
+            }
+
+            .watermark-pdf-header p {
+                font-size: 12px;
+                color: #475569;
+                margin-top: 4px;
+            }
+        }
+
+        .watermark-pdf-header {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-left"></div>
+
+    <div class="app-container">
+        
+        <!-- Native Printable PDF Watermark/Header -->
+        <div class="watermark-pdf-header">
+            <h1>HSTS SENTINEL SECURITY REPORT</h1>
+            <p>ISO 27001:2022 Cryptographic Resilience Audit Document</p>
+        </div>
+
+        <header>
+            <div class="brand-section">
+                <div class="logo-shield">
+                    <!-- Glowing Shield SVG Icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                </div>
+                <div class="title-group">
+                    <h1>Sentinel-HSTS <span>Active Sandbox</span></h1>
+                    <p>Dynamic HSTS Orchestration & Preload Visualization Engine</p>
+                </div>
+            </div>
+            
+            <div class="global-actions">
+                <button class="btn-secondary" onclick="resetSandbox()">Reset Sandbox</button>
+                <button class="btn-primary" onclick="generateAuditReport()" style="background: linear-gradient(135deg, var(--color-mint) 0%, #10b981 100%); color: black; box-shadow: var(--shadow-mint);">
+                    <svg style="width: 18px; height: 18px; fill: black;" viewBox="0 0 24 24">
+                        <path d="M19 12v7H5v-7H3v7c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2v-7h-2zm-6 .67l2.59-2.58L17 11.5l-5 5-5-5 1.41-1.41L11 12.67V3h2v9.67z"/>
+                    </svg>
+                    ISO 27001 Export PDF
+                </button>
+            </div>
+        </header>
+
+        <!-- Scanning Input Control Bar -->
+        <div class="scan-bar">
+            <div class="input-wrapper">
+                <!-- Search Globe icon -->
+                <svg viewBox="0 0 24 24">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                <input type="text" id="domainInput" placeholder="enterprise-site.com" value="enterprise-site.com" aria-label="Target Enterprise Domain">
+            </div>
+            <button class="btn-primary" onclick="startAnalysis()">
+                Analyze Domain
+            </button>
+        </div>
+
+        <!-- Dashboard Core Panels Grid -->
+        <div class="dashboard-grid">
+            
+            <!-- Left Side controls -->
+            <div class="side-panels">
+                
+                <!-- Prophecy Score Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7zm2.85 11.1l-.85.6V16h-4v-2.3l-.85-.6C8.8 12.1 8 10.63 8 9c0-2.21 1.79-4 4-4s4 1.79 4 4c0 1.63-.8 3.1-2.15 4.1z"/></svg>
+                            Trust Prophecy
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('prophecy-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="prophecy-info" class="info-explanation-drawer">
+                        <strong>Trust Prophecy Score:</strong> This dynamic score measures your domain's HSTS resilience against Man-in-the-Middle (MitM) attacks.
+                        <br><br>
+                        <strong>How it was determined:</strong> The engine deducts points for short header cache lifetimes (max-age), absent preload list registration (subject to Trust On First Use vulnerabilities), or when unencrypted HTTP subdomains are detected alongside active subdomains enforcement.
+                    </div>
+                    <div class="score-circle-wrapper">
+                        <svg class="score-svg">
+                            <circle class="score-track" cx="80" cy="80" r="70"></circle>
+                            <circle class="score-progress" id="scoreIndicator" cx="80" cy="80" r="70"></circle>
+                        </svg>
+                        <div class="score-text-container">
+                            <span class="score-num" id="scoreValue">0</span>
+                            <span class="score-lbl">Resilience</span>
+                        </div>
+                    </div>
+                    <div class="status-badge-panel">
+                        <span class="status-label">Handshake Status</span>
+                        <span class="status-badge badge-danger" id="hstsBadge">Vulnerable</span>
+                    </div>
+                </div>
+
+                <!-- Simulation & Time Decay wizard slider -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm4.2 14.2L11 13V7h1.5v5.2l4.5 2.7-.8 1.3z"/></svg>
+                            Ramp-Up Wizard
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('wizard-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.5 10-10S17.5 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="wizard-info" class="info-explanation-drawer">
+                        <strong>Ramp-Up Wizard:</strong> A guided transition tool for Strict-Transport-Security deployment.
+                        <br><br>
+                        <strong>How it was determined:</strong> Per RFC 6797 and browser preload guidelines, we recommend starting with a short 5-minute cache time (Phase 1) to test compatibility, graduating up to 1 year and preloading (Phase 6). This prevents site-wide user lockout if legacy HTTP subdomains are discovered.
+                    </div>
+                    <div class="wizard-slider-container">
+                        <div class="slider-meta">
+                            <span class="step-name" id="sliderStepName">Phase 1: Testing</span>
+                            <span class="duration" id="sliderDuration">max-age = 300s</span>
+                        </div>
+                        <input type="range" min="0" max="5" value="0" class="range-slider" id="maxAgeSlider" aria-label="HSTS Deployment Phase Slider" oninput="handleSliderChange(this.value)">
+                        <div class="ticks-labels" role="group" aria-label="HSTS Phases">
+                            <button type="button" onclick="setSliderStep(0)" class="active tick-btn" id="tick-0">5m</button>
+                            <button type="button" onclick="setSliderStep(1)" class="tick-btn" id="tick-1">1d</button>
+                            <button type="button" onclick="setSliderStep(2)" class="tick-btn" id="tick-2">1w</button>
+                            <button type="button" onclick="setSliderStep(3)" class="tick-btn" id="tick-3">1m</button>
+                            <button type="button" onclick="setSliderStep(4)" class="tick-btn" id="tick-4">1y</button>
+                            <button type="button" onclick="setSliderStep(5)" class="tick-btn" id="tick-5">Preload</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Safe-Mode Subdomain SSL Simulation controls -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                            SSL Sandbox Override
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('sandbox-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="sandbox-info" class="info-explanation-drawer">
+                        <strong>SSL Sandbox Override:</strong> Simulate SSL/TLS certificates across subdomain routing endpoints.
+                        <br><br>
+                        <strong>How it was determined:</strong> Initial state is determined by Port 443 availability scans. Toggling a node to "No SSL" simulates a cleartext service. If a client attempts to contact an unencrypted subdomain under strict HSTS, the browser blocks the connection entirely.
+                    </div>
+                    <p style="font-size: 12px; color: var(--color-muted); line-height: 1.4;">
+                        Toggle security simulation status for subdomains to see the HSTS impact map update.
+                    </p>
+                    <div class="simulation-toggles">
+                        <button class="toggle-btn active" id="btn-api" onclick="toggleSubdomainSecurity('api')">
+                            api (SSL)
+                        </button>
+                        <button class="toggle-btn insecure" id="btn-dev" onclick="toggleSubdomainSecurity('dev')">
+                            dev (No SSL)
+                        </button>
+                        <button class="toggle-btn active" id="btn-mail" onclick="toggleSubdomainSecurity('mail')">
+                            mail (SSL)
+                        </button>
+                        <button class="toggle-btn insecure" id="btn-internal" onclick="toggleSubdomainSecurity('internal')">
+                            internal (No SSL)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Event Log Console -->
+                <div class="card" style="gap:14px;">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+                            Sentinel Diagnostic Log
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('log-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="log-info" class="info-explanation-drawer">
+                        <strong>Sentinel Diagnostic Log:</strong> Real-time auditing feed.
+                        <br><br>
+                        <strong>How it was determined:</strong> Monitors and logs network crawling loops, DNS resolution checks, and TLS handshake telemetry client-side to satisfy ISO 27001 data residency compliance.
+                    </div>
+                    <div class="console-log" id="eventConsole">
+                        <div class="console-line">
+                            <span class="timestamp">[00:00:00]</span>
+                            <span>System ready. Enter domain and click 'Analyze Domain' to probe.</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side panels -->
+            <div class="main-panel">
+                
+                <!-- Force-Directed Interactive Canvas Map -->
+                <div class="card map-card" style="padding-bottom: 12px;">
+                    <div class="card-header">
+                        <div>
+                            <h2 class="card-title">
+                                <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93h2c0 2.76 2.24 5 5 5s5-2.24 5-5h2c0 4.08-3.05 7.44-7 7.93z"/></svg>
+                                Visual Trust Topography Map
+                            </h2>
+                            <p style="font-size: 12px; color: var(--color-muted); margin-top: 4px;">
+                                Force-directed connection graph. Drag nodes to inspect structure. Double-click a subdomain to toggle its SSL state.
+                            </p>
+                        </div>
+                        <button class="info-btn" onclick="toggleInfoDrawer('map-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="map-info" class="info-explanation-drawer" style="margin-bottom: 12px;">
+                        <strong>Visual Trust Topography Map:</strong> Dynamic force-directed diagram showing active cryptographic tunnels.
+                        <br><br>
+                        <strong>How it was determined:</strong> Nodes represent hostnames; links represent SSL/TLS status. Red dashed pathways warn of immediate connection blockage risks (HSTS active but endpoint lacks SSL).
+                    </div>
+                    <div class="canvas-container">
+                        <canvas id="topoCanvas"></canvas>
+                        
+                        <div class="map-overlay-legend">
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--color-cyan);"></div>
+                                <span>Root Namespace</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--color-mint);"></div>
+                                <span>Secure Subdomain</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-dot" style="background: var(--color-magenta);"></div>
+                                <span>Insecure Leak (Downgrade Risk)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Browser Compatibility Card -->
+                <div class="card" id="browser-compatibility-card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93h2c0 2.76 2.24 5 5 5s5-2.24 5-5h2c0 4.08-3.05 7.44-7 7.93z"/></svg>
+                            Browser Compatibility
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('browser-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="browser-info" class="info-explanation-drawer">
+                        <strong>Browser Compatibility:</strong> Assesses how different browsers handle the active HSTS configuration.
+                        <br><br>
+                        <strong>How it was determined:</strong> Determined based on standard browser parsing rules. Chrome and Edge enforce a minimum 1-year max-age and require preload registration to prevent TOFU (Trust On First Use) vulnerabilities. Safari iOS enforces a 1-year max-age minimum. Firefox operates starting from a 1-week cache. All browsers block cleartext subdomains when includeSubdomains is active.
+                    </div>
+                    <div class="browser-grid">
+                        <!-- Chrome -->
+                        <div class="browser-card" id="browser-chrome" style="position: relative;">
+                            <div class="browser-icon">
+                                <svg viewBox="0 0 24 24" fill="#38bdf8">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93h2c0 2.76 2.24 5 5 5s5-2.24 5-5h2c0 4.08-3.05 7.44-7 7.93z"/>
+                                </svg>
+                            </div>
+                            <div class="browser-info">
+                                <span class="browser-name">Chrome 154</span>
+                                <span class="browser-status status-supported" id="chrome-status">Secured</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                <div class="browser-badge" id="chrome-badge" style="background: rgba(0, 255, 135, 0.15); color: var(--color-mint);">✓</div>
+                                <button class="info-btn" style="padding: 2px;" onclick="toggleInfoDrawer('chrome-info', this)" title="Chrome Status Details">
+                                    <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Safari -->
+                        <div class="browser-card" id="browser-safari" style="position: relative;">
+                            <div class="browser-icon">
+                                <svg viewBox="0 0 24 24" fill="#a855f7">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                </svg>
+                            </div>
+                            <div class="browser-info">
+                                <span class="browser-name">Safari / iOS</span>
+                                <span class="browser-status status-partial" id="safari-status">Checking</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                <div class="browser-badge" id="safari-badge" style="background: rgba(253, 219, 36, 0.15); color: var(--color-yellow);">!</div>
+                                <button class="info-btn" style="padding: 2px;" onclick="toggleInfoDrawer('safari-info', this)" title="Safari Status Details">
+                                    <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Firefox -->
+                        <div class="browser-card" id="browser-firefox" style="position: relative;">
+                            <div class="browser-icon">
+                                <svg viewBox="0 0 24 24" fill="#ea580c">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                </svg>
+                            </div>
+                            <div class="browser-info">
+                                <span class="browser-name">Firefox</span>
+                                <span class="browser-status status-supported" id="firefox-status">Secured</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                <div class="browser-badge" id="firefox-badge" style="background: rgba(0, 255, 135, 0.15); color: var(--color-mint);">✓</div>
+                                <button class="info-btn" style="padding: 2px;" onclick="toggleInfoDrawer('firefox-info', this)" title="Firefox Status Details">
+                                    <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <!-- Edge -->
+                        <div class="browser-card" id="browser-edge" style="position: relative;">
+                            <div class="browser-icon">
+                                <svg viewBox="0 0 24 24" fill="#0284c7">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                </svg>
+                            </div>
+                            <div class="browser-info">
+                                <span class="browser-name">Edge</span>
+                                <span class="browser-status status-supported" id="edge-status">Secured</span>
+                            </div>
+                            <div style="display: flex; flex-direction: column; align-items: center; gap: 6px;">
+                                <div class="browser-badge" id="edge-badge" style="background: rgba(0, 255, 135, 0.15); color: var(--color-mint);">✓</div>
+                                <button class="info-btn" style="padding: 2px;" onclick="toggleInfoDrawer('edge-info', this)" title="Edge Status Details">
+                                    <svg viewBox="0 0 24 24" style="width: 14px; height: 14px;"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Individual Browser Compliance Details Drawers -->
+                    <div id="chrome-info" class="info-explanation-drawer">
+                        <strong>Chrome HSTS Compliance:</strong>
+                        <br><br>
+                        <strong>How it is determined:</strong> Chrome requires a minimum `max-age` of 1 year (31,536,000s) to be secure. If the cache is shorter, it registers a <strong style="color:var(--color-yellow);">Decay Risk</strong>. Additionally, to avoid <strong style="color:var(--color-yellow);">TOFU (Trust On First Use) Risks</strong>, Chrome requires the `preload` directive in the header and submission to the preload list. Any insecure subdomain with active HSTS will trigger a <strong style="color:var(--color-magenta);">Site Blocked</strong> error.
+                    </div>
+                    <div id="safari-info" class="info-explanation-drawer">
+                        <strong>Safari HSTS Compliance:</strong>
+                        <br><br>
+                        <strong>How it is determined:</strong> Safari iOS enforces a minimum `max-age` of 1 year. Shorter durations trigger a <strong style="color:var(--color-yellow);">Decay Risk</strong>. Like other browsers, if any subdomains run without SSL while `includeSubDomains` is active, the entire domain tree will experience a <strong style="color:var(--color-magenta);">Site Blocked</strong> condition.
+                    </div>
+                    <div id="firefox-info" class="info-explanation-drawer">
+                        <strong>Firefox HSTS Compliance:</strong>
+                        <br><br>
+                        <strong>How it is determined:</strong> Firefox has a lower minimum threshold of 1 week (604,800s) for HSTS cache enforcement. If `max-age` is less than this, it marks a <strong style="color:var(--color-yellow);">Decay Risk</strong>. It blocks cleartext subdomains if `includeSubDomains` is active, resulting in a <strong style="color:var(--color-magenta);">Site Blocked</strong> status.
+                    </div>
+                    <div id="edge-info" class="info-explanation-drawer">
+                        <strong>Edge HSTS Compliance:</strong>
+                        <br><br>
+                        <strong>How it is determined:</strong> Microsoft Edge uses Chrome's Chromium engine standards, demanding a 1-year `max-age` and preloading registration to avoid <strong style="color:var(--color-yellow);">TOFU Risks</strong>. Insecure subdomains combined with strict policies result in a <strong style="color:var(--color-magenta);">Site Blocked</strong> warning.
+                    </div>
+                </div>
+
+                <!-- Config Tab view & Governance Doc -->
+                <div class="tabs-card">
+                    <div class="tabs-nav">
+                        <button class="tab-btn active" onclick="switchTab('nginx')">Nginx</button>
+                        <button class="tab-btn" onclick="switchTab('apache')">Apache</button>
+                        <button class="tab-btn" onclick="switchTab('cloudflare')">Cloudflare</button>
+                        <button class="tab-btn" onclick="switchTab('policy')">ISO 27001 Policy</button>
+                    </div>
+
+                    <!-- Config Code Snippets -->
+                    <div id="nginx-tab" class="tab-content active">
+                        <div class="code-container">
+                            <button class="copy-btn" onclick="copyCode('nginx-code')">Copy</button>
+                            <pre id="nginx-code"># Recommended Nginx Configuration
+add_header Strict-Transport-Security "max-age=300; includeSubDomains" always;</pre>
+                        </div>
+                    </div>
+
+                    <div id="apache-tab" class="tab-content">
+                        <div class="code-container">
+                            <button class="copy-btn" onclick="copyCode('apache-code')">Copy</button>
+                            <pre id="apache-code"># Recommended Apache Configuration
+Header always set Strict-Transport-Security "max-age=300; includeSubDomains"</pre>
+                        </div>
+                    </div>
+
+                    <div id="cloudflare-tab" class="tab-content">
+                        <div class="code-container">
+                            <button class="copy-btn" onclick="copyCode('cloudflare-code')">Copy</button>
+                            <pre id="cloudflare-code"># Cloudflare HSTS Settings
+hsts:
+  enabled: true
+  max_age: 300
+  include_subdomains: true
+  preload: false</pre>
+                        </div>
+                    </div>
+
+                    <!-- Automated Governance HSTS Policy -->
+                    <div id="policy-tab" class="tab-content">
+                        <div class="policy-document" id="policyDoc">
+                            <h2>OFFICIAL LIFE-CYCLE POLICY: HSTS ENFORCEMENT</h2>
+                            
+                            <div class="policy-meta">
+                                <div>
+                                    <p><strong>Audited Domain:</strong> <span id="policyDomain">enterprise-site.com</span></p>
+                                    <p><strong>Cryptographic Compliance:</strong> Annex A.8.24 (ISO 27001:2022)</p>
+                                </div>
+                                <div style="text-align: right;">
+                                    <p><strong>Date Generated:</strong> <span id="policyDate">--</span></p>
+                                    <p><strong>Deployment Mode:</strong> <span id="policyPhase">Testing (Beta)</span></p>
+                                </div>
+                            </div>
+
+                            <h3>1. Objective & Scope</h3>
+                            <p>To enforce TLS encryption in transit for all connections to our root namespace and subdomains, preventing credential harvesting, SSL stripping, and Man-in-the-Middle (MitM) hijackings. This policy covers all internal and external facing environments, including developer sandboxes and APIs.</p>
+
+                            <h3>2. HSTS Header Directive Configuration</h3>
+                            <p>All load-balancers, web services, and content delivery nodes must emit the Strict-Transport-Security header over valid HTTPS responses with the following directives:</p>
+                            <ul>
+                                <li><strong>Target max-age:</strong> <span id="policyMaxAge">300 seconds</span></li>
+                                <li><strong>includeSubDomains:</strong> Mandated (All sub-assets must use SSL to prevent global domain blocking).</li>
+                                <li><strong>preload:</strong> <span id="policyPreload">Permitted ONLY after phase 4 validation is finalized.</span></li>
+                            </ul>
+
+                            <h3>3. Safe Rollout Lifecycle Schedule</h3>
+                            <p>Due to the permanent browser-caching properties of HSTS headers, deployment must proceed along the following graduated threshold phases:</p>
+                            <ul>
+                                <li><strong>Phase 1: Testing (Beta)</strong> - 5 Minutes max-age (Initial crawl & fallback confirmation).</li>
+                                <li><strong>Phase 2: Deployment (Gamma)</strong> - 1 Week max-age (Resolve mixed content anomalies).</li>
+                                <li><strong>Phase 3: Enforcement (Delta)</strong> - 1 Year max-age (Preloading eligibility baseline).</li>
+                                <li><strong>Phase 4: Preload</strong> - Submission to the browser hardcoded list.</li>
+                            </ul>
+
+                            <div class="policy-signatures">
+                                <div>
+                                    <div class="signature-line">Chief Information Security Officer (CISO)</div>
+                                </div>
+                                <div>
+                                    <div class="signature-line">VP of Infrastructure & Operations</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Floating Notice -->
+                <div class="info-bar">
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                    </svg>
+                    <span>
+                        <strong>Sentinel Architecture Insight:</strong> Local browser sandboxing runs diagnostic loops client-side. This ensures sensitive topology structures and compliance statistics satisfy <strong>strict ISO 27001 data residency regulations</strong> by avoiding third-party server logging.
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+        <footer>
+            Sentinel-HSTS Core // Open-Source Pre-Deployment Security Sandbox // 2026 Innovation Board
+        </footer>
+
+    </div>
+
+    <!-- HSTS Sandbox Engine & Visual Topography Canvas script -->
+    <script>
+        // Subdomain model state
+        const subdomainsState = {
+            api: { name: "api", secure: true, label: "API Gateway" },
+            dev: { name: "dev", secure: false, label: "Developer Sandbox" },
+            mail: { name: "mail", secure: true, label: "Exchange / IMAP" },
+            internal: { name: "internal", secure: false, label: "Internal Directory" }
+        };
+
+        let currentDomain = "enterprise-site.com";
+        let isScanning = false;
+        
+        // RFC 6797 HSTS Rollout configuration database
+        const hstsSteps = [
+            {
+                name: "Phase 1: Testing (Beta)",
+                maxAge: 300,
+                maxAgeStr: "300 seconds",
+                nginx: 'add_header Strict-Transport-Security "max-age=300" always;',
+                apache: 'Header always set Strict-Transport-Security "max-age=300"',
+                cloudflare: 'hsts:\n  enabled: true\n  max_age: 300\n  include_subdomains: false\n  preload: false',
+                includeSubDomains: false,
+                preload: false,
+                riskModifier: 0.1
+            },
+            {
+                name: "Phase 2: Transition (Gamma)",
+                maxAge: 86400,
+                maxAgeStr: "86,400 seconds (1 Day)",
+                nginx: 'add_header Strict-Transport-Security "max-age=86400" always;',
+                apache: 'Header always set Strict-Transport-Security "max-age=86400"',
+                cloudflare: 'hsts:\n  enabled: true\n  max_age: 86400\n  include_subdomains: false\n  preload: false',
+                includeSubDomains: false,
+                preload: false,
+                riskModifier: 0.2
+            },
+            {
+                name: "Phase 3: Subdomain Audit & Staging",
+                maxAge: 604800,
+                maxAgeStr: "604,800 seconds (1 Week) [Subdomains]",
+                nginx: 'add_header Strict-Transport-Security "max-age=604800; includeSubDomains" always;',
+                apache: 'Header always set Strict-Transport-Security "max-age=604800; includeSubDomains"',
+                cloudflare: 'hsts:\n  enabled: true\n  max_age: 604800\n  include_subdomains: true\n  preload: false',
+                includeSubDomains: true,
+                preload: false,
+                riskModifier: 0.4
+            },
+            {
+                name: "Phase 4: Extended Stability",
+                maxAge: 2592000,
+                maxAgeStr: "2,592,000 seconds (30 Days)",
+                nginx: 'add_header Strict-Transport-Security "max-age=2592000; includeSubDomains" always;',
+                apache: 'Header always set Strict-Transport-Security "max-age=2592000; includeSubDomains"',
+                cloudflare: 'hsts:\n  enabled: true\n  max_age: 2592000\n  include_subdomains: true\n  preload: false',
+                includeSubDomains: true,
+                preload: false,
+                riskModifier: 0.6
+            },
+            {
+                name: "Phase 5: Full Enforcement",
+                maxAge: 31536000,
+                maxAgeStr: "31,536,000 seconds (1 Year)",
+                nginx: 'add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;',
+                apache: 'Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"',
+                cloudflare: 'hsts:\n  enabled: true\n  max_age: 31536000\n  include_subdomains: true\n  preload: false',
+                includeSubDomains: true,
+                preload: false,
+                riskModifier: 0.9
+            },
+            {
+                name: "Phase 6: Hardcoded Preload List",
+                maxAge: 63072000,
+                maxAgeStr: "63,072,000 seconds (2 Years) [Preloaded]",
+                nginx: 'add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;',
+                apache: 'Header always set Strict-Transport-Security "max-age=63072000; includeSubDomains; preload"',
+                cloudflare: 'hsts:\n  enabled: true\n  max_age: 63072000\n  include_subdomains: true\n  preload: true',
+                includeSubDomains: true,
+                preload: true,
+                riskModifier: 1.0
+            }
+        ];
+
+        let activeStepIdx = 0;
+
+        // Force-Directed Graph physics settings
+        const canvas = document.getElementById('topoCanvas');
+        const ctx = canvas.getContext('2d');
+        let nodes = [];
+        let links = [];
+        let draggedNode = null;
+        let hoveredNode = null;
+        let mouseX = 0;
+        let mouseY = 0;
+
+        class Node {
+            constructor(id, label, x, y, size, color, isRoot, secure = true) {
+                this.id = id;
+                this.label = label;
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.size = size;
+                this.color = color;
+                this.isRoot = isRoot;
+                this.secure = secure;
+                this.pulseFactor = 0;
+            }
+
+            update() {
+                if (this.isRoot) return; // Keep root domain locked near center of canvas
+                
+                // Spring force toward root
+                const root = nodes[0];
+                const dx = root.x - this.x;
+                const dy = root.y - this.y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                const targetDist = 140; // Ideal distance
+                const springStrength = 0.003;
+                
+                if (dist > 0) {
+                    const f = (dist - targetDist) * springStrength;
+                    this.vx += (dx / dist) * f;
+                    this.vy += (dy / dist) * f;
+                }
+
+                // Repulsion forces from all other nodes
+                nodes.forEach(n => {
+                    if (n === this) return;
+                    const rdx = n.x - this.x;
+                    const rdy = n.y - this.y;
+                    const rdist = Math.sqrt(rdx * rdx + rdy * rdy);
+                    const minDist = 110;
+                    if (rdist < minDist && rdist > 0) {
+                        const rf = (minDist - rdist) * 0.05;
+                        this.vx -= (rdx / rdist) * rf;
+                        this.vy -= (rdy / rdist) * rf;
+                    }
+                });
+
+                // Apply velocity & friction damping
+                this.vx *= 0.85;
+                this.vy *= 0.85;
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Restrict boundaries
+                this.x = Math.max(this.size + 10, Math.min(canvas.width - this.size - 10, this.x));
+                this.y = Math.max(this.size + 10, Math.min(canvas.height - this.size - 10, this.y));
+            }
+
+            draw() {
+                this.pulseFactor += 0.04;
+                
+                // Draw connection links
+                if (!this.isRoot) {
+                    const root = nodes[0];
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(root.x, root.y);
+                    
+                    // Style connection links. Red dashed lines if insecure and HSTS is active
+                    const activeStep = hstsSteps[activeStepIdx];
+                    const hstsStrictEnforced = activeStep.maxAge >= 604800; // 1 week threshold where subdomains block
+                    
+                    if (!this.secure && hstsStrictEnforced) {
+                        ctx.strokeStyle = '#ff2a5f';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([4, 6]);
+                    } else if (!this.secure) {
+                        ctx.strokeStyle = '#fddb24';
+                        ctx.lineWidth = 1.5;
+                        ctx.setLineDash([2, 4]);
+                    } else {
+                        ctx.strokeStyle = '#212c49';
+                        ctx.lineWidth = 2;
+                        ctx.setLineDash([]);
+                    }
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+
+                // Node background glow
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size + 12, 0, Math.PI * 2);
+                let glowColor = 'rgba(56, 189, 248, 0.03)';
+                if (!this.secure) {
+                    glowColor = 'rgba(255, 42, 95, 0.05)';
+                } else if (this.isRoot) {
+                    glowColor = 'rgba(0, 229, 255, 0.05)';
+                }
+                ctx.fillStyle = glowColor;
+                ctx.fill();
+
+                // Pulse ring for warning nodes
+                if (!this.secure) {
+                    const pulseRadius = this.size + 8 + Math.sin(this.pulseFactor) * 6;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, pulseRadius, 0, Math.PI * 2);
+                    ctx.strokeStyle = 'rgba(255, 42, 95, 0.4)';
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+                }
+
+                // Core Node Drawing
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.shadowBlur = this.isRoot ? 10 : 0;
+                ctx.shadowColor = this.color;
+                ctx.fill();
+                ctx.shadowBlur = 0; // reset
+                ctx.strokeStyle = '#ffffff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // Render secure/unsecure icons inside the node circle
+                ctx.fillStyle = '#07090e';
+                ctx.font = "bold 11px sans-serif";
+                ctx.textAlign = "center";
+                ctx.textBaseline = "middle";
+                if (this.isRoot) {
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillText("HSTS", this.x, this.y);
+                } else {
+                    ctx.fillText(this.secure ? "✓" : "✗", this.x, this.y);
+                }
+
+                // Text Labels
+                ctx.fillStyle = '#ffffff';
+                ctx.font = "bold 13px 'Outfit', sans-serif";
+                ctx.textAlign = "center";
+                ctx.fillText(this.label, this.x, this.y - this.size - 10);
+
+                // Small subtext
+                ctx.fillStyle = '#94a3b8';
+                ctx.font = "10px 'JetBrains Mono', monospace";
+                ctx.fillText(this.isRoot ? "Root Node" : (this.secure ? "TLS Enabled" : "TLS Vulnerable"), this.x, this.y + this.size + 14);
+            }
+        }
+
+        // Initialize Canvas Map nodes
+        function initMap() {
+            nodes = [
+                new Node("root", currentDomain, canvas.width / 2, canvas.height / 2, 22, 'var(--color-cyan)', true)
+            ];
+
+            const angles = [Math.PI/6, 5*Math.PI/6, 7*Math.PI/6, 11*Math.PI/6];
+            let idx = 0;
+            for (let sub in subdomainsState) {
+                const sInfo = subdomainsState[sub];
+                const angle = angles[idx++];
+                const nx = canvas.width / 2 + Math.cos(angle) * 130;
+                const ny = canvas.height / 2 + Math.sin(angle) * 130;
+                const color = sInfo.secure ? 'var(--color-mint)' : 'var(--color-magenta)';
+                
+                nodes.push(new Node(sInfo.name, `${sInfo.name}.${currentDomain}`, nx, ny, 12, color, false, sInfo.secure));
+            }
+        }
+
+        // Resize handler to adjust canvas coordinates
+        function resizeCanvas() {
+            const container = canvas.parentElement;
+            canvas.width = container.clientWidth;
+            canvas.height = 380;
+            if (nodes.length > 0) {
+                // Relock root domain to the new center
+                nodes[0].x = canvas.width / 2;
+                nodes[0].y = canvas.height / 2;
+            }
+        }
+
+        // Setup mouse listeners for Canvas dragging & interactivity
+        function setupCanvasListeners() {
+            canvas.addEventListener('mousedown', e => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+
+                // Check hit test on nodes
+                for (let n of nodes) {
+                    const dist = Math.sqrt((n.x - mx) ** 2 + (n.y - my) ** 2);
+                    if (dist <= n.size + 15) {
+                        draggedNode = n;
+                        break;
+                    }
+                }
+            });
+
+            canvas.addEventListener('mousemove', e => {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = e.clientX - rect.left;
+                mouseY = e.clientY - rect.top;
+
+                if (draggedNode) {
+                    draggedNode.x = mouseX;
+                    draggedNode.y = mouseY;
+                }
+
+                // Check hovered node
+                hoveredNode = null;
+                for (let n of nodes) {
+                    const dist = Math.sqrt((n.x - mouseX) ** 2 + (n.y - mouseY) ** 2);
+                    if (dist <= n.size + 10) {
+                        hoveredNode = n;
+                        break;
+                    }
+                }
+            });
+
+            window.addEventListener('mouseup', () => {
+                draggedNode = null;
+            });
+
+            canvas.addEventListener('dblclick', e => {
+                const rect = canvas.getBoundingClientRect();
+                const mx = e.clientX - rect.left;
+                const my = e.clientY - rect.top;
+
+                for (let n of nodes) {
+                    if (n.isRoot) continue;
+                    const dist = Math.sqrt((n.x - mx) ** 2 + (n.y - my) ** 2);
+                    if (dist <= n.size + 12) {
+                        toggleSubdomainSecurity(n.id);
+                        break;
+                    }
+                }
+            });
+        }
+
+        // Helper for safely encoding text strings
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>"']/g, function(tag) {
+                const chars = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+                return chars[tag] || tag;
+            });
+        }
+
+        // Live physics & render loop with visibility-aware pause
+        let animationFrameId = null;
+        function runCanvasLoop() {
+            if (document.hidden) return; // Pause GPU cycles when tab is backgrounded
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw force connections first
+            nodes.forEach(n => n.update());
+            nodes.forEach(n => n.draw());
+            
+            // Display node tooltip on hover
+            if (hoveredNode && !hoveredNode.isRoot) {
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+                ctx.strokeStyle = 'var(--border-color)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.roundRect(mouseX + 15, mouseY - 45, 220, 60, 6);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = "bold 11px sans-serif";
+                ctx.textAlign = "left";
+                ctx.fillText(`Host: ${hoveredNode.label}`, mouseX + 25, mouseY - 28);
+                
+                ctx.font = "10px sans-serif";
+                ctx.fillStyle = hoveredNode.secure ? 'var(--color-mint)' : 'var(--color-magenta)';
+                ctx.fillText(`Security Status: ${hoveredNode.secure ? "SSL Certified (Encrypted)" : "No SSL / Vulnerable"}`, mouseX + 25, mouseY - 12);
+            }
+
+            animationFrameId = requestAnimationFrame(runCanvasLoop);
+        }
+
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            } else {
+                animationFrameId = requestAnimationFrame(runCanvasLoop);
+            }
+        });
+
+        // Logging helper (Hardened against DOM XSS via textContent)
+        function addLog(text, type = "info") {
+            const consoleBox = document.getElementById('eventConsole');
+            const now = new Date();
+            const timeStr = now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
+            
+            const line = document.createElement('div');
+            line.className = "console-line";
+            
+            let classSpan = "text-info";
+            if (type === "ok") classSpan = "text-ok";
+            if (type === "warn") classSpan = "text-warn";
+            if (type === "err") classSpan = "text-err";
+            
+            const timeSpan = document.createElement('span');
+            timeSpan.className = "timestamp";
+            timeSpan.textContent = `[${timeStr}]`;
+            
+            const msgSpan = document.createElement('span');
+            msgSpan.className = classSpan;
+            msgSpan.textContent = ` ${text}`;
+            
+            line.appendChild(timeSpan);
+            line.appendChild(msgSpan);
+            consoleBox.appendChild(line);
+            consoleBox.scrollTop = consoleBox.scrollHeight;
+        }
+
+        // Sandbox Reset
+        function resetSandbox() {
+            document.getElementById('domainInput').value = "enterprise-site.com";
+            currentDomain = "enterprise-site.com";
+            
+            // Reset subdomains configuration
+            subdomainsState.api.secure = true;
+            subdomainsState.dev.secure = false;
+            subdomainsState.mail.secure = true;
+            subdomainsState.internal.secure = false;
+            
+            // Reset GUI buttons
+            updateSimulationOverrideButtons();
+            
+            // Reset Slider
+            setSliderStep(0);
+            
+            // Clear Console Log
+            const consoleBox = document.getElementById('eventConsole');
+            consoleBox.innerHTML = `
+                <div class="console-line">
+                    <span class="timestamp">[00:00:00]</span>
+                    <span>Sandbox reset completed. System re-initialized.</span>
+                </div>
+            `;
+            
+            initMap();
+            calculateScore();
+            addLog("Sandbox configuration reset successfully.", "info");
+        }
+
+        // Trigger scan and simulation
+        function startAnalysis() {
+            const inputVal = document.getElementById('domainInput').value.trim();
+            if (!inputVal) {
+                alert("Please enter a valid domain to run the HSTS security sandbox audit.");
+                return;
+            }
+
+            currentDomain = inputVal;
+            isScanning = true;
+            
+            // Clear existing and init simulation logs
+            const consoleBox = document.getElementById('eventConsole');
+            consoleBox.innerHTML = "";
+            addLog(`Initializing HSTS diagnostics crawl on: https://${currentDomain}`, "info");
+            
+            // Trigger stepped logs simulating network scanner
+            setTimeout(() => {
+                addLog(`[DNS Resolve] Fetched root namespace server records: A=104.22.4.91, AAAA=2606:4700:10::6816:45b`, "ok");
+                nodes[0].label = currentDomain;
+                for (let i = 1; i < nodes.length; i++) {
+                    const nodeName = nodes[i].id;
+                    nodes[i].label = `${nodeName}.${currentDomain}`;
+                }
+            }, 500);
+
+            setTimeout(() => {
+                addLog(`[HTTPS Handshake] Checking raw security headers for root domain...`, "info");
+            }, 1000);
+
+            setTimeout(() => {
+                const activeStep = hstsSteps[activeStepIdx];
+                const headerStatus = activeStep.maxAge > 0 ? "Strict-Transport-Security Header Detected" : "Strict-Transport-Security Header MISSING";
+                addLog(`[Header Audit] ${headerStatus}. max-age = ${activeStep.maxAge}s`, activeStep.maxAge > 0 ? "ok" : "warn");
+                
+                // Update policy document dates
+                document.getElementById('policyDomain').innerText = currentDomain;
+                document.getElementById('policyDate').innerText = new Date().toLocaleDateString();
+            }, 1500);
+
+            setTimeout(() => {
+                addLog(`[Subdomain Discovery] Initiating parallel HTTP probing across 4 discovered endpoints...`, "info");
+                
+                // Print individual subdomain statuses
+                let insecureCount = 0;
+                for (let sub in subdomainsState) {
+                    const s = subdomainsState[sub];
+                    if (s.secure) {
+                        addLog(`[Discovery] OK: ${s.name}.${currentDomain} responds on Port 443 with valid SSL certificate.`, "ok");
+                    } else {
+                        addLog(`[Discovery] ALARM: ${s.name}.${currentDomain} loads over insecure http:// connection.`, "err");
+                        insecureCount++;
+                    }
+                }
+                
+                if (insecureCount > 0) {
+                    addLog(`[HSTS WARNING] Found ${insecureCount} subdomains running legacy HTTP configuration.`, "warn");
+                } else {
+                    addLog(`[HSTS OK] All subdomains verified with valid TLS configurations.`, "ok");
+                }
+                
+                isScanning = false;
+                calculateScore();
+            }, 2200);
+        }
+
+        // Toggle state of subdomain certificates (Safe-mode simulation)
+        function toggleSubdomainSecurity(subKey) {
+            if (subdomainsState[subKey]) {
+                const secureState = !subdomainsState[subKey].secure;
+                subdomainsState[subKey].secure = secureState;
+                
+                // Update map node colors
+                for (let n of nodes) {
+                    if (n.id === subKey) {
+                        n.secure = secureState;
+                        n.color = secureState ? 'var(--color-mint)' : 'var(--color-magenta)';
+                        break;
+                    }
+                }
+                
+                // Log action
+                if (secureState) {
+                    addLog(`[SSL Sandbox] Simulated SSL certificate deployment on subdomain: ${subKey}.${currentDomain}`, "ok");
+                } else {
+                    addLog(`[SSL Sandbox] Simulated SSL certificate REVOCATION on subdomain: ${subKey}.${currentDomain}. Port 80 active.`, "err");
+                }
+
+                updateSimulationOverrideButtons();
+                calculateScore();
+            }
+        }
+
+        // Sync visual classes on dashboard simulation toggles
+        function updateSimulationOverrideButtons() {
+            for (let sub in subdomainsState) {
+                const s = subdomainsState[sub];
+                const btn = document.getElementById(`btn-${sub}`);
+                if (s.secure) {
+                    btn.className = "toggle-btn active";
+                    btn.innerText = `${sub} (SSL)`;
+                } else {
+                    btn.className = "toggle-btn insecure";
+                    btn.innerText = `${sub} (No SSL)`;
+                }
+            }
+        }
+
+        // Calculate and update the dynamic risk scores
+        function calculateScore() {
+            const activeStep = hstsSteps[activeStepIdx];
+            
+            // Calculate variables
+            let insecureAssets = 0;
+            for (let sub in subdomainsState) {
+                if (!subdomainsState[sub].secure) insecureAssets++;
+            }
+
+            // HSTS Lockout logic:
+            // High max-age AND insecure subdomains = Critical Lockout Danger (Site breaks)
+            const hstsStrictEnforced = activeStep.maxAge >= 604800; // Phase 3 (1 Week) or greater
+            const includeSubdomainsEnforced = true; // Slider currently enforces subdomains
+            
+            let resilienceScore = 100;
+            let statusText = "Secure";
+            let badgeClass = "badge-secure";
+            
+            // Penalty based on header configuration
+            if (activeStep.maxAge === 300) {
+                // Testing phase has low resilience because users aren't protected for long
+                resilienceScore -= 40;
+                statusText = "Testing Mode";
+                badgeClass = "badge-warning";
+            } else if (activeStep.maxAge <= 604800) {
+                resilienceScore -= 20;
+                statusText = "Low Protection";
+                badgeClass = "badge-warning";
+            }
+            
+            if (!activeStep.preload) {
+                resilienceScore -= 10; // Minus score if not preloaded (TOFU vulnerability exists)
+            }
+
+            // Lockout penalty
+            let siteBricked = false;
+            if (insecureAssets > 0 && hstsStrictEnforced) {
+                // Critical risk: site breaks because HSTS tells browser to load HTTPS-only, but subdomain lacks TLS.
+                resilienceScore = 15 + (4 - insecureAssets) * 5; // Drops to extremely low score
+                statusText = "HSTS LOCKOUT ALARM";
+                badgeClass = "badge-danger";
+                siteBricked = true;
+            } else if (insecureAssets > 0) {
+                // Warning risk: header has low max-age, so site doesn't break permanently, but leakage exists.
+                resilienceScore -= (insecureAssets * 12);
+                statusText = "Asset Leakage";
+                badgeClass = "badge-warning";
+            }
+
+            // Bind values to UI
+            const scoreValEl = document.getElementById('scoreValue');
+            const progressEl = document.getElementById('scoreIndicator');
+            const hstsBadgeEl = document.getElementById('hstsBadge');
+            
+            scoreValEl.innerText = Math.max(0, Math.min(100, Math.round(resilienceScore)));
+            
+            // Map score to gauge stroke-dashoffset: 440 (0%) to 0 (100%)
+            const offset = 440 - (440 * Math.max(0, Math.min(100, resilienceScore)) / 100);
+            progressEl.style.strokeDashoffset = offset;
+            
+            // Update color of circle track
+            if (badgeClass === "badge-secure") {
+                progressEl.style.stroke = 'var(--color-mint)';
+            } else if (badgeClass === "badge-warning") {
+                progressEl.style.stroke = 'var(--color-yellow)';
+            } else {
+                progressEl.style.stroke = 'var(--color-magenta)';
+            }
+            
+            hstsBadgeEl.innerText = statusText;
+            hstsBadgeEl.className = `status-badge ${badgeClass}`;
+
+            // Update browser compatibility cards based on security state & policies
+            updateBrowserStatus(siteBricked, activeStep);
+            
+            // Sync policy document details
+            document.getElementById('policyMaxAge').innerText = activeStep.maxAgeStr;
+            document.getElementById('policyPhase').innerText = activeStep.name;
+            if (activeStep.preload) {
+                document.getElementById('policyPreload').innerText = "Mandatory. Preloaded list validated and submitted.";
+            } else {
+                document.getElementById('policyPreload').innerText = "Consent not given. Sandbox slider prevents preload submission.";
+            }
+        }
+
+        // Adjust browser compliance matrix
+        function updateBrowserStatus(siteBricked, activeStep) {
+            const browsers = [
+                { id: "chrome", minAge: 31536000, reqPreload: true },
+                { id: "safari", minAge: 31536000, reqPreload: false },
+                { id: "firefox", minAge: 604800, reqPreload: false },
+                { id: "edge", minAge: 31536000, reqPreload: true }
+            ];
+
+            browsers.forEach(b => {
+                const statusTextEl = document.getElementById(`${b.id}-status`);
+                const badgeEl = document.getElementById(`${b.id}-badge`);
+                const cardEl = document.getElementById(`browser-${b.id}`);
+                
+                if (siteBricked) {
+                    statusTextEl.innerText = "Site Blocked";
+                    statusTextEl.className = "browser-status status-unsupported";
+                    badgeEl.innerText = "✗";
+                    badgeEl.style.background = "rgba(255, 42, 95, 0.15)";
+                    badgeEl.style.color = "var(--color-magenta)";
+                    cardEl.style.borderColor = "var(--color-magenta)";
+                } else if (activeStep.maxAge < b.minAge) {
+                    statusTextEl.innerText = "Decay Risk";
+                    statusTextEl.className = "browser-status status-partial";
+                    badgeEl.innerText = "!";
+                    badgeEl.style.background = "rgba(253, 219, 36, 0.15)";
+                    badgeEl.style.color = "var(--color-yellow)";
+                    cardEl.style.borderColor = "var(--border-color)";
+                } else if (b.reqPreload && !activeStep.preload) {
+                    statusTextEl.innerText = "TOFU Risk";
+                    statusTextEl.className = "browser-status status-partial";
+                    badgeEl.innerText = "!";
+                    badgeEl.style.background = "rgba(253, 219, 36, 0.15)";
+                    badgeEl.style.color = "var(--color-yellow)";
+                    cardEl.style.borderColor = "var(--border-color)";
+                } else {
+                    statusTextEl.innerText = "Protected";
+                    statusTextEl.className = "browser-status status-supported";
+                    badgeEl.innerText = "✓";
+                    badgeEl.style.background = "rgba(0, 255, 135, 0.15)";
+                    badgeEl.style.color = "var(--color-mint)";
+                    cardEl.style.borderColor = "var(--border-color)";
+                }
+            });
+        }
+
+        // Slide wizard handling
+        function handleSliderChange(val) {
+            activeStepIdx = Number.parseInt(val, 10);
+            const step = hstsSteps[activeStepIdx];
+            
+            // Update labels
+            document.getElementById('sliderStepName').innerText = step.name;
+            document.getElementById('sliderDuration').innerText = `max-age = ${step.maxAgeStr}`;
+            
+            // Sync active visual state on ticks
+            for (let i = 0; i <= 5; i++) {
+                document.getElementById(`tick-${i}`).className = i === activeStepIdx ? "active" : "";
+            }
+
+            // Update configurations snippets
+            document.getElementById('nginx-code').innerText = step.nginx;
+            document.getElementById('apache-code').innerText = step.apache;
+            document.getElementById('cloudflare-code').innerText = step.cloudflare;
+
+            // Recalculate
+            calculateScore();
+            
+            addLog(`[Slider Wizard] Config policy adjusted to: ${step.name}.`, "info");
+        }
+
+        function setSliderStep(idx) {
+            document.getElementById('maxAgeSlider').value = idx;
+            handleSliderChange(idx);
+        }
+
+        // Tab Switching panel logic
+        function switchTab(tabId) {
+            const tabs = ['nginx', 'apache', 'cloudflare', 'policy'];
+            tabs.forEach(t => {
+                const btn = document.querySelector(`.tab-btn[onclick="switchTab('${t}')"]`);
+                const content = document.getElementById(`${t}-tab`);
+                
+                // Fallback for policy ID structure
+                const targetContent = t === 'policy' ? document.getElementById('policy-tab') : content;
+
+                if (t === tabId) {
+                    btn.classList.add('active');
+                    targetContent.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                    targetContent.classList.remove('active');
+                }
+            });
+        }
+
+        // Copy configuration snippets to clipboard
+        function copyCode(elementId) {
+            const codeText = document.getElementById(elementId).innerText;
+            navigator.clipboard.writeText(codeText).then(() => {
+                const btn = document.querySelector(`#${elementId}`).previousElementSibling;
+                const originalText = btn.innerText;
+                btn.innerText = "Copied!";
+                btn.style.borderColor = "var(--color-mint)";
+                btn.style.color = "var(--color-mint)";
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.style.borderColor = "var(--border-color)";
+                    btn.style.color = "var(--color-text)";
+                }, 2000);
+            });
+        }
+
+        // Generate printable ISO 27001 Report PDF
+        function generateAuditReport() {
+            addLog("Preparing compliance audit PDF structure...", "info");
+            
+            // Lock UI and trigger browser native printing mechanism
+            setTimeout(() => {
+                window.print();
+            }, 100);
+        }
+
+        // Toggle info drawer visibility
+        function toggleInfoDrawer(drawerId, btn) {
+            const drawer = document.getElementById(drawerId);
+            if (!drawer) return;
+            const isVisible = drawer.style.display === "block";
+            drawer.style.display = isVisible ? "none" : "block";
+            if (btn) {
+                if (isVisible) {
+                    btn.classList.remove('active');
+                } else {
+                    btn.classList.add('active');
+                }
+            }
+        }
+
+        // Window load routines
+        window.addEventListener('load', () => {
+            initMap();
+            resizeCanvas();
+            setupCanvasListeners();
+            calculateScore();
+            
+            // Run loop
+            requestAnimationFrame(runCanvasLoop);
+        });
+
+        window.addEventListener('resize', resizeCanvas);
+    </script>
+</body>
+</html>

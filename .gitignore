@@ -1,0 +1,13 @@
+.vercel
+sentinel.db
+*.db
+*.sqlite
+*.sqlite3
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.env.*
+.DS_Store
+
+.scannerwork/

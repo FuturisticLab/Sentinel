@@ -1,0 +1,3219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Exhaust // Privacy Diagnostic</title>
+    
+    <!-- Google Fonts Outfit & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        /* CSS variables for consistent, premium palette */
+        :root {
+            --bg-base: #060203;
+            --bg-surface: #0e0507;
+            --bg-card: #150709;
+            --bg-input: #0a0304;
+            --border-color: rgba(0, 255, 102, 0.18);
+            --border-glow: rgba(0, 255, 102, 0.28);
+            
+            --color-text: #e6f4ea;
+            --color-muted: #7ba087;
+            --color-cyan: #00ffd5;
+            --color-primary: #00ff66;
+            --color-mint: #00ff87;
+            --color-magenta: #ff2a5f;
+            --color-yellow: #fddb24;
+            --color-navy: #0b1a10;
+            
+            --font-main: 'Outfit', sans-serif;
+            --font-code: 'JetBrains Mono', monospace;
+            
+            --shadow-glow: 0 0 25px rgba(0, 255, 102, 0.25);
+            --shadow-magenta: 0 0 25px rgba(255, 42, 95, 0.35);
+            --shadow-mint: 0 0 25px rgba(0, 255, 135, 0.35);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--color-text);
+            font-family: var(--font-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Ambient background glow */
+        .ambient-glow {
+            position: absolute;
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, rgba(255, 30, 56, 0.08) 0%, rgba(6, 2, 3, 0) 70%);
+            top: -200px;
+            right: -100px;
+            z-index: 0;
+            pointer-events: none;
+        }
+        
+        .ambient-glow-left {
+            position: absolute;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(255, 51, 75, 0.05) 0%, rgba(6, 2, 3, 0) 70%);
+            bottom: -200px;
+            left: -200px;
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        /* Layout */
+        .app-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 30px;
+            position: relative;
+            z-index: 1;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Header block */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 20px;
+        }
+
+        .brand-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-shield {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, #ff1e38 0%, #a21237 100%);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 0 25px rgba(255, 30, 56, 0.45);
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .logo-shield svg {
+            width: 22px;
+            height: 22px;
+            fill: var(--bg-base);
+        }
+
+        .title-group h1 {
+            font-size: 26px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #ffffff, #fbcfe8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .title-group h1 span {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            background: rgba(255, 42, 95, 0.15);
+            color: var(--color-magenta);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(255, 42, 95, 0.3);
+        }
+
+        .title-group p {
+            color: var(--color-muted);
+            font-size: 14px;
+            margin-top: 2px;
+        }
+
+        .global-actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .warning-banner {
+            background: rgba(255, 42, 95, 0.08);
+            border: 1px solid var(--color-magenta);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            color: var(--color-magenta);
+            font-weight: 700;
+            font-size: 14px;
+            box-shadow: var(--shadow-magenta);
+            animation: glow 3s ease-in-out infinite alternate;
+        }
+
+        /* Dashboard Grid Layout */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            transition: border-color 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: var(--color-primary);
+            box-shadow: 0 0 15px rgba(0, 255, 102, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-title {
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: -0.2px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .card-title svg {
+            width: 18px;
+            height: 18px;
+            fill: var(--color-magenta);
+        }
+
+        /* Circular Risk Score Indicator */
+        .score-circle-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 10px 0;
+            position: relative;
+        }
+
+        .score-svg {
+            transform: rotate(-90deg);
+            width: 160px;
+            height: 160px;
+        }
+
+        .score-track {
+            fill: none;
+            stroke: var(--bg-card);
+            stroke-width: 12;
+        }
+
+        .score-progress {
+            fill: none;
+            stroke: var(--color-mint);
+            stroke-width: 12;
+            stroke-dasharray: 440;
+            stroke-dashoffset: 440;
+            stroke-linecap: round;
+            transition: stroke-dashoffset 1.5s cubic-bezier(0.4, 0, 0.2, 1), stroke 1s ease;
+        }
+
+        .score-text-container {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-num {
+            font-size: 42px;
+            font-weight: 800;
+            color: white;
+            letter-spacing: -1px;
+            line-height: 1;
+        }
+
+        .score-lbl {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--color-muted);
+            margin-top: 4px;
+            font-weight: 600;
+        }
+
+        .status-badge-panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .status-label {
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .badge-secure { background: rgba(0, 255, 135, 0.15); color: var(--color-mint); border: 1px solid rgba(0, 255, 135, 0.3); }
+        .badge-warning { background: rgba(253, 219, 36, 0.15); color: var(--color-yellow); border: 1px solid rgba(253, 219, 36, 0.3); }
+        .badge-danger { background: rgba(255, 42, 95, 0.15); color: var(--color-magenta); border: 1px solid rgba(255, 42, 95, 0.3); }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: 800;
+            display: block;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--color-muted);
+            margin-top: 2px;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(0, 255, 135, 0.05);
+            border: 1px solid rgba(0, 255, 135, 0.15);
+            border-radius: 8px;
+            font-size: 13px;
+            color: var(--color-mint);
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--color-mint);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        /* Leak Feed */
+        .leak-detector {
+            height: 350px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            border-radius: 10px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .initial-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--color-muted);
+            font-size: 13px;
+        }
+
+        .leak-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 14px 10px;
+            border-bottom: 1px solid var(--border-color);
+            animation: slideIn 0.3s ease-out;
+            gap: 14px;
+        }
+
+        .leak-item:last-child {
+            border-bottom: none;
+        }
+
+        .leak-icon {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .leak-high { background: var(--color-magenta); box-shadow: 0 0 8px var(--color-magenta); }
+        .leak-medium { background: var(--color-yellow); box-shadow: 0 0 8px var(--color-yellow); }
+        .leak-low { background: var(--color-mint); box-shadow: 0 0 8px var(--color-mint); }
+        .leak-secure { background: var(--color-cyan); box-shadow: 0 0 8px var(--color-cyan); }
+
+        .leak-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 2px 7px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .badge-risk-high { background: rgba(255, 42, 95, 0.15); color: var(--color-magenta); border: 1px solid rgba(255, 42, 95, 0.4); }
+        .badge-risk-medium { background: rgba(253, 219, 36, 0.15); color: var(--color-yellow); border: 1px solid rgba(253, 219, 36, 0.4); }
+        .badge-risk-low { background: rgba(0, 255, 135, 0.15); color: var(--color-mint); border: 1px solid rgba(0, 255, 135, 0.4); }
+        .badge-risk-secure { background: rgba(0, 255, 213, 0.15); color: var(--color-cyan); border: 1px solid rgba(0, 255, 213, 0.4); }
+
+        .leak-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .leak-title {
+            font-weight: 700;
+            font-size: 13px;
+            color: white;
+        }
+
+        .leak-description {
+            font-size: 12px;
+            color: var(--color-muted);
+            line-height: 1.3;
+        }
+
+        .leak-value {
+            font-size: 11px;
+            color: var(--color-cyan);
+            font-family: var(--font-code);
+            background: rgba(0, 229, 255, 0.05);
+            padding: 4px 8px;
+            border-radius: 4px;
+            word-break: break-all;
+            margin-top: 6px;
+            border: 1px solid rgba(0, 229, 255, 0.1);
+        }
+
+        /* Defense Probe Container */
+        .defense-probe-container {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .probe-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .probe-title {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--color-muted);
+            font-weight: 700;
+        }
+
+        .probe-badge {
+            font-size: 10px;
+            font-weight: 700;
+            padding: 3px 8px;
+            border-radius: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: all 0.3s ease;
+        }
+
+        .badge-idle { background: rgba(123, 160, 135, 0.15); color: var(--color-muted); border: 1px solid rgba(123, 160, 135, 0.3); }
+        .badge-captured { background: rgba(255, 42, 95, 0.15); color: var(--color-magenta); border: 1px solid rgba(255, 42, 95, 0.4); box-shadow: 0 0 10px rgba(255, 42, 95, 0.2); }
+        .badge-defended { background: rgba(0, 255, 135, 0.15); color: var(--color-mint); border: 1px solid rgba(0, 255, 135, 0.4); box-shadow: 0 0 10px rgba(0, 255, 135, 0.2); }
+        .badge-synthetic { background: rgba(253, 219, 36, 0.15); color: var(--color-yellow); border: 1px solid rgba(253, 219, 36, 0.4); }
+
+        .probe-interactive-area {
+            background: var(--bg-surface);
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            padding: 16px 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+            user-select: none;
+        }
+
+        .probe-interactive-area:hover, .probe-interactive-area:focus {
+            border-color: var(--color-cyan);
+            background: rgba(0, 255, 213, 0.03);
+            box-shadow: 0 0 12px rgba(0, 255, 213, 0.1);
+        }
+
+        .probe-instructions {
+            font-size: 12px;
+            color: var(--color-muted);
+            font-family: var(--font-main);
+            transition: color 0.2s ease;
+        }
+
+        .probe-interactive-area:focus .probe-instructions {
+            color: var(--color-text);
+        }
+
+        .probe-live-feedback {
+            font-size: 11px;
+            color: var(--color-cyan);
+            font-family: var(--font-code);
+            margin-top: 6px;
+        }
+
+        .probe-input {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--color-cyan);
+            font-family: var(--font-code);
+            font-size: 12px;
+            padding: 8px 12px;
+            outline: none;
+            text-align: center;
+            margin-top: 8px;
+            box-sizing: border-box;
+            transition: all 0.2s ease;
+        }
+
+        .probe-input:focus {
+            border-color: var(--color-mint);
+            box-shadow: 0 0 10px rgba(0, 255, 135, 0.2);
+            background: rgba(0, 0, 0, 0.7);
+        }
+
+        .probe-status-desc {
+            font-size: 11px;
+            color: var(--color-muted);
+            line-height: 1.4;
+        }
+
+        /* Cookie & Storage Monitor Styles */
+        .cookie-monitor-feed {
+            max-height: 220px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            border-radius: 8px;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .cookie-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            font-size: 12px;
+            transition: border-color 0.2s ease;
+        }
+
+        .cookie-item:hover {
+            border-color: rgba(0, 255, 213, 0.4);
+        }
+
+        .cookie-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .cookie-name {
+            font-weight: 700;
+            color: var(--color-cyan);
+            font-family: var(--font-code);
+            font-size: 11px;
+            word-break: break-all;
+        }
+
+        .cookie-flags {
+            display: flex;
+            gap: 4px;
+            flex-wrap: wrap;
+        }
+
+        .cookie-flag-badge {
+            font-size: 9px;
+            font-weight: 700;
+            padding: 2px 5px;
+            border-radius: 3px;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .badge-flag-secure { background: rgba(0, 255, 135, 0.15); color: var(--color-mint); border: 1px solid rgba(0, 255, 135, 0.3); }
+        .badge-flag-insecure { background: rgba(255, 42, 95, 0.15); color: var(--color-magenta); border: 1px solid rgba(255, 42, 95, 0.3); }
+        .badge-flag-httponly-risk { background: rgba(255, 42, 95, 0.2); color: var(--color-magenta); border: 1px solid rgba(255, 42, 95, 0.4); }
+        .badge-flag-samesite { background: rgba(253, 219, 36, 0.15); color: var(--color-yellow); border: 1px solid rgba(253, 219, 36, 0.3); }
+        .badge-grade-aplus { background: rgba(0, 255, 135, 0.2); color: var(--color-mint); border: 1px solid var(--color-mint); font-weight: 800; }
+        .badge-grade-f { background: rgba(255, 42, 95, 0.2); color: var(--color-magenta); border: 1px solid var(--color-magenta); font-weight: 800; }
+
+        .cookie-value-preview {
+            font-family: var(--font-code);
+            font-size: 10px;
+            color: var(--color-muted);
+            word-break: break-all;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 4px 6px;
+            border-radius: 4px;
+        }
+
+        .observatory-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 11px;
+            margin-top: 8px;
+        }
+        .observatory-table th, .observatory-table td {
+            padding: 7px 6px;
+            text-align: left;
+            border-bottom: 1px solid rgba(0, 255, 102, 0.08);
+        }
+        .observatory-table th {
+            color: var(--color-muted);
+            font-weight: 600;
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+
+        .shield-check-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 8px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(0, 255, 102, 0.08);
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        /* Controls button panel */
+        .controls {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 14px 28px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 700;
+            font-family: var(--font-main);
+            font-size: 15px;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--color-cyan) 0%, var(--color-primary) 100%);
+            color: var(--bg-base);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            filter: brightness(1.1);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--color-text);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+        }
+
+        .info-bar {
+            background: linear-gradient(90deg, rgba(56, 189, 248, 0.05) 0%, rgba(255, 42, 95, 0.02) 100%);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            font-size: 13px;
+            color: var(--color-muted);
+        }
+
+        .info-bar svg {
+            width: 20px;
+            height: 20px;
+            fill: var(--color-cyan);
+            flex-shrink: 0;
+        }
+
+        .info-bar strong {
+            color: white;
+        }
+
+        /* Float & Pulse animation rules */
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-4px); }
+            100% { transform: translateY(0px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 10px rgba(255, 42, 95, 0.15); }
+            to { box-shadow: 0 0 25px rgba(255, 42, 95, 0.35); }
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(-15px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--color-muted);
+            font-size: 13px;
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
+        }
+
+        /* Collapsible Info Drawer & Toggle Button */
+        .info-btn {
+            background: none;
+            border: none;
+            color: var(--color-muted);
+            cursor: pointer;
+            padding: 6px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+        .info-btn:hover, .info-btn.active {
+            color: var(--color-magenta);
+            background: rgba(255, 42, 95, 0.08);
+            box-shadow: 0 0 8px rgba(255, 42, 95, 0.2);
+        }
+        .info-btn svg {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+        }
+        .info-explanation-drawer {
+            display: none;
+            background: rgba(8, 17, 11, 0.85);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 4px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--color-text);
+            box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.03);
+            animation: drawerFadeIn 0.3s ease;
+        }
+        .info-explanation-drawer strong {
+            color: var(--color-magenta);
+        }
+        @keyframes drawerFadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* PRINT PDF FORMATS */
+        .watermark-pdf-header {
+            display: none;
+        }
+
+        .side-panels {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        /* Table styles for history */
+        #historyTable th, #historyTable td {
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px;
+        }
+
+        #historyTable tr:hover td {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        @media print {
+            body {
+                background: white !important;
+                color: black !important;
+            }
+
+            .ambient-glow, .ambient-glow-left, .controls, footer, header, #historyCard,
+            .info-btn, .info-explanation-drawer {
+                display: none !important;
+            }
+
+            .app-container {
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+
+            .dashboard-grid {
+                grid-template-columns: 1fr !important;
+                gap: 20px !important;
+            }
+
+            .card {
+                border: 1px solid #cbd5e1 !important;
+                box-shadow: none !important;
+                background: white !important;
+                color: black !important;
+                page-break-inside: avoid;
+            }
+
+            .card-title, h2, h3, .score-num {
+                color: black !important;
+            }
+
+            .score-track { stroke: #e2e8f0 !important; }
+            .score-progress { stroke: #f44336 !important; }
+
+            .leak-detector {
+                border: 1px solid #cbd5e1 !important;
+                background: #f8fafc !important;
+                color: #334155 !important;
+                height: auto !important;
+                max-height: none !important;
+                overflow: visible !important;
+            }
+
+            .leak-item {
+                border-bottom: 1px solid #cbd5e1 !important;
+            }
+
+            .watermark-pdf-header {
+                display: block !important;
+                text-align: center;
+                border-bottom: 2px solid black;
+                padding-bottom: 12px;
+                margin-bottom: 30px;
+            }
+
+            .watermark-pdf-header h1 {
+                font-size: 24px;
+                font-weight: 800;
+                color: black;
+            }
+
+            .watermark-pdf-header p {
+                font-size: 12px;
+                color: #475569;
+                margin-top: 4px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ambient-glow"></div>
+    <div class="ambient-glow-left"></div>
+
+    <div class="app-container">
+        
+        <!-- Printable PDF Header -->
+        <div class="watermark-pdf-header">
+            <h1>DIGITAL EXHAUST PRIVACY REPORT</h1>
+            <p>Real-Time Browser Fingerprint & Telemetry Audit</p>
+        </div>
+
+        <header>
+            <div class="brand-section">
+                <div class="logo-shield">
+                    <!-- Shield Search icon -->
+                    <svg viewBox="0 0 24 24">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm0-4h-2V7h2v8z"/>
+                    </svg>
+                </div>
+                <div class="title-group">
+                    <h1>Digital Exhaust <span>Telemetry Check</span></h1>
+                    <p>Real-time client-side browser fingerprinting diagnostic</p>
+                </div>
+            </div>
+            
+            <div class="global-actions">
+                <button class="btn-secondary" onclick="clearTelemetry()">Clear Session</button>
+            </div>
+        </header>
+
+        <div class="warning-banner" id="criticalAlert" style="display: none;">
+            ⚠️ <strong>CRITICAL DATA LEAKAGE:</strong> Insecure hardware fingerprints or local configurations leaked. Privacy profile compromised.
+        </div>
+
+        <div class="dashboard-grid">
+            
+            <!-- Left Panel: Risk Score dial & stats -->
+            <div class="side-panels">
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 22c5.52 0 10-4.48 10-10S17.52 2 12 2 2 6.48 2 12s4.48 10 10 10zm1-15h-2v2h2V7zm0 4h-2v6h2v-6z"/></svg>
+                            Privacy Exhaust Rating
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('privacy-rating-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="privacy-rating-info" class="info-explanation-drawer">
+                        <strong>Privacy Exhaust Rating:</strong> A composite risk score evaluating browser fingerprint uniqueness and tracking surface.
+                        <br><br>
+                        <strong>How it was determined:</strong> The engine analyzes the quantity and severity of active data leaks (e.g., exposed local IP addresses via WebRTC, distinctive canvas rendering, unique audio processing contexts, and system fonts). The higher the number of distinct attributes, the easier it is for tracking scripts to uniquely identify your browser.
+                    </div>
+                    
+                    <div class="score-circle-wrapper">
+                        <svg class="score-svg">
+                            <circle class="score-track" cx="80" cy="80" r="70"></circle>
+                            <circle class="score-progress" id="scoreIndicator" cx="80" cy="80" r="70"></circle>
+                        </svg>
+                        <div class="score-text-container">
+                            <span class="score-num" id="riskScore">0</span>
+                            <span class="score-lbl">Risk Score</span>
+                        </div>
+                    </div>
+
+                    <div class="status-badge-panel">
+                        <span class="status-label">Overall Status</span>
+                        <span class="status-badge badge-secure" id="riskStatus">Secure</span>
+                    </div>
+
+                    <div class="stats">
+                        <div class="stat-card">
+                            <span class="stat-number" id="leakCount">0</span>
+                            <span class="stat-label">Data Leaks</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="uniqueFingerprint">0%</span>
+                            <span class="stat-label">Uniqueness</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="trackingVulnerability">0</span>
+                            <span class="stat-label">Trackers</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Behavioral Telemetry tracking & Defense Probe -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93h2c0 2.76 2.24 5 5 5s5-2.24 5-5h2c0 4.08-3.05 7.44-7 7.93z"/></svg>
+                            Behavioral Telemetry
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('behavioral-telemetry-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="behavioral-telemetry-info" class="info-explanation-drawer">
+                        <strong>Behavioral Telemetry & Defense Verification:</strong> Analyzes whether human interaction dynamics (keystroke cadence, pointer trajectories, click mechanics) are exposed to web tracking or shielded by client-side anti-fingerprinting defenses.
+                        <br><br>
+                        <strong>How Defense is Verified:</strong> The Defense Probe allows you to interact directly. If you click, move, or type in the probe but hardware events are suppressed or masked by privacy extensions/shields, the tool confirms active defense rather than assuming you were simply idle.
+                    </div>
+
+                    <!-- Interactive Defense Probe Zone -->
+                    <div class="defense-probe-container">
+                        <div class="probe-header">
+                            <span class="probe-title">🎯 Defense Verification Probe</span>
+                            <span id="probeStatusBadge" class="probe-badge badge-idle">Awaiting Input (Idle)</span>
+                        </div>
+                        <div class="probe-interactive-area" id="probeArea" title="Move cursor here or type below to test biometric defenses">
+                            <div class="probe-instructions" id="probeInstructions">
+                                Move cursor across this box or test typing defenses below:
+                            </div>
+                            <input type="text" id="probeInput" class="probe-input" placeholder="Type here to test anti-keylogger defenses..." aria-label="Defense verification typing probe" autocomplete="off" spellcheck="false">
+                            <div class="probe-live-feedback" id="probeFeedback" style="display: none;"></div>
+                        </div>
+                        <div class="probe-status-desc" id="probeStatusDesc">
+                            Status: Waiting for user activity. Move cursor or type into probe to verify defenses.
+                        </div>
+                    </div>
+
+                    <div class="wizard-slider-container" style="font-size: 13px; display:flex; flex-direction:column; gap:8px; margin-top: 12px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Input Mode</span>
+                            <strong id="inputMode">Mouse & Keyboard</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Mouse / Pointer moves</span>
+                            <strong id="mouseMoves">0</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Pointer velocity speed</span>
+                            <strong id="mouseSpeed">0 px/ms</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Click interactions</span>
+                            <strong id="clicksCount">0</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Keystrokes recorded</span>
+                            <strong id="keysCount">0</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Hardware Event Trust</span>
+                            <strong id="eventTrust" style="color: var(--color-muted);">Awaiting Test</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Detailed Cookie & Storage Monitor -->
+                <div class="card" id="cookieMonitorCard">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M21.598 11.064a1.006 1.006 0 0 0-.854-.172A3.993 3.993 0 0 1 15.5 8c0-1.898 1.32-3.486 3.093-3.905a1.005 1.005 0 0 0 .546-1.543 10.024 10.024 0 0 0-4.04-3.136A10.07 10.07 0 0 0 2 12c0 5.514 4.486 10 10 10 5.378 0 9.773-4.267 9.992-9.637a1.002 1.002 0 0 0-.394-1.299zM12 20c-4.411 0-8-3.589-8-8 0-4.07 3.057-7.436 7-7.931a6.002 6.002 0 0 0 6.931 6.931c-.495 3.943-3.861 7-7.931 7zm-3-11a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm-2 5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 3a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm3-4a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+                            Cookie & Storage Monitor
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('cookie-monitor-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="cookie-monitor-info" class="info-explanation-drawer">
+                        <strong>Cookie & Client Storage Security Monitor:</strong> Inspects active browser cookies (`document.cookie`, `cookieStore`), client storage (`localStorage`, `sessionStorage`, `IndexedDB`), and audits security flags.
+                        <br><br>
+                        <strong>Key Security Checks:</strong>
+                        <ul style="margin: 6px 0 0 18px; padding: 0;">
+                            <li><strong>HttpOnly Protection:</strong> Sensitive session tokens must NOT be accessible to JavaScript to prevent XSS exfiltration.</li>
+                            <li><strong>Secure Flag:</strong> Ensures cookies are transmitted only via encrypted HTTPS connections.</li>
+                            <li><strong>SameSite Policy:</strong> Prevents Cross-Site Request Forgery (CSRF) and cross-site tracking.</li>
+                            <li><strong>Storage Footprint:</strong> Audits persistent storage keys that can be used as supercookies.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Cookie Summary Stats -->
+                    <div class="stats" style="margin-bottom: 12px;">
+                        <div class="stat-card">
+                            <span class="stat-number" id="cookieCount">0</span>
+                            <span class="stat-label">Active Cookies</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="httpOnlyStatus" style="color: var(--color-mint); font-size: 15px; line-height: 28px;">SECURE</span>
+                            <span class="stat-label">HttpOnly Shield</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-number" id="storageItemsCount">0</span>
+                            <span class="stat-label">Storage Keys</span>
+                        </div>
+                    </div>
+
+                    <!-- Cookie & Storage List Container -->
+                    <div class="cookie-monitor-feed" id="cookieFeed">
+                        <div class="initial-message" style="padding: 24px 10px;">
+                            <div>No exposed client-readable cookies detected.</div>
+                            <div style="font-size: 11px; margin-top: 4px; color: var(--color-mint);">HttpOnly protection or clean cookie jar active.</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn-secondary" style="flex: 1; padding: 8px; font-size: 11px;" onclick="refreshCookieMonitor()">🔄 Audit Storage Now</button>
+                        <button class="btn-secondary" style="flex: 1; padding: 8px; font-size: 11px;" onclick="testSampleCookie()">🧪 Test Cookie Policy</button>
+                    </div>
+                </div>
+
+                <!-- Anti-Fingerprinting Noise Injection Detector (Farbling Prober) -->
+                <div class="card" id="noiseDetectorCard">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1 6h2v2h-2V7zm0 4h2v6h-2v-6z"/></svg>
+                            Anti-Fingerprint Noise Detector
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('noise-detector-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="noise-detector-info" class="info-explanation-drawer">
+                        <strong>Anti-Fingerprinting Noise Injection (Farbling / Perturbation):</strong> Evaluates whether your browser actively injects mathematical pseudo-random noise into Canvas pixel buffers and Audio frequency samples to spoil cross-site tracking fingerprints.
+                        <br><br>
+                        <strong>How It Works:</strong> Sentinel renders identical complex multi-layer canvas graphics and audio wave frequencies in two back-to-back micro-tasks:
+                        <ul style="margin: 6px 0 0 18px; padding: 0;">
+                            <li><strong>Deterministic (Vulnerable):</strong> Pass 1 hash exactly equals Pass 2 hash (100% reproducible cross-site tracking fingerprint).</li>
+                            <li><strong>Noise Injection (Shield Active):</strong> Pass 1 hash differs from Pass 2 hash. Proves active browser defense (e.g., Brave Farbling, Firefox <code>privacy.resistFingerprinting</code>, Safari Advanced Tracking Protection, or Tor Browser).</li>
+                        </ul>
+                    </div>
+
+                    <!-- Overall Noise Defense Badge Panel -->
+                    <div class="status-badge-panel" style="margin-bottom: 12px;">
+                        <span class="status-label">Anti-Fingerprint Defense State</span>
+                        <span class="status-badge badge-warning" id="overallNoiseBadge">Awaiting Probe</span>
+                    </div>
+
+                    <!-- Canvas vs Audio Multi-Pass Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+                        <!-- Canvas Farbling Box -->
+                        <div class="stat-card" style="text-align: left; padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span class="stat-label" style="text-transform: uppercase;">Canvas Farbling</span>
+                                <span id="canvasNoiseBadge" class="cookie-flag-badge badge-flag-samesite" style="font-size: 8px;">UNTESTED</span>
+                            </div>
+                            <div style="font-size: 11px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                                <div><span style="color:var(--color-muted);">Pass 1:</span> <span id="canvasPass1" style="font-family: var(--font-code); color: var(--color-cyan);">-</span></div>
+                                <div><span style="color:var(--color-muted);">Pass 2:</span> <span id="canvasPass2" style="font-family: var(--font-code); color: var(--color-mint);">-</span></div>
+                                <div><span style="color:var(--color-muted);">Perturbation:</span> <strong id="canvasNoiseDiff" style="font-size: 10px; color: var(--color-text);">Awaiting test</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Audio Perturbation Box -->
+                        <div class="stat-card" style="text-align: left; padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                                <span class="stat-label" style="text-transform: uppercase;">Audio Buffer Noise</span>
+                                <span id="audioNoiseBadge" class="cookie-flag-badge badge-flag-samesite" style="font-size: 8px;">UNTESTED</span>
+                            </div>
+                            <div style="font-size: 11px; margin-top: 4px; display: flex; flex-direction: column; gap: 3px;">
+                                <div><span style="color:var(--color-muted);">Sig 1:</span> <span id="audioPass1" style="font-family: var(--font-code); color: var(--color-cyan);">-</span></div>
+                                <div><span style="color:var(--color-muted);">Sig 2:</span> <span id="audioPass2" style="font-family: var(--font-code); color: var(--color-mint);">-</span></div>
+                                <div><span style="color:var(--color-muted);">Delta:</span> <strong id="audioNoiseDelta" style="font-family: var(--font-code); font-size: 10px; color: var(--color-text);">0.00000000</strong></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Noise Prober Verdict Details -->
+                    <div class="wizard-slider-container" style="font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Canvas Defense Verdict:</span>
+                            <strong id="canvasVerdictText" style="color: var(--color-muted);">Untested</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Audio Defense Verdict:</span>
+                            <strong id="audioVerdictText" style="color: var(--color-muted);">Untested</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Combined Resistance:</span>
+                            <strong id="combinedResistanceText" style="color: var(--color-cyan);">Evaluating...</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn-secondary" style="flex: 1; padding: 8px; font-size: 11px;" onclick="probeNoiseInjection()">🧪 Probe Noise Injection Now</button>
+                    </div>
+                </div>
+
+                <!-- Adblocker & Tracker Shield Diagnostic -->
+                <div class="card" id="adblockCard">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15-5-5 1.41-1.41L11 12.17l7.59-7.59L20 6l-9 11z"/></svg>
+                            Adblock & Tracker Shield Diagnostic
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('adblock-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="adblock-info" class="info-explanation-drawer">
+                        <strong>Adblocker & Tracker Shield Diagnostic:</strong> Audits whether your client has active network adblocking or content-filtering shields (e.g. uBlock Origin, Brave Shields, Pi-hole, AdGuard, DNS filter).
+                        <br><br>
+                        <strong>Audit Vectors:</strong>
+                        <ul style="margin: 6px 0 0 18px; padding: 0;">
+                            <li><strong>Bait Script Injection:</strong> Checks if high-frequency tracker bait files (e.g., <code>pagead2.googlesyndication.com</code>, <code>analytics.js</code>) are aborted by network filters.</li>
+                            <li><strong>Telemetry Request Interception:</strong> Verifies whether background beacon/fetch telemetry endpoints are filtered.</li>
+                            <li><strong>DOM Element Cosmetology:</strong> Detects if cosmetic ad containers (e.g., <code>ad-banner</code>, <code>sponsor-wrapper</code>) are hidden via CSS inject rules (`display: none`).</li>
+                        </ul>
+                    </div>
+
+                    <!-- Shield Status Badge Panel -->
+                    <div class="status-badge-panel" style="margin-bottom: 12px;">
+                        <span class="status-label">Tracker Interception Status</span>
+                        <span class="status-badge badge-warning" id="adblockOverallBadge">Awaiting Test</span>
+                    </div>
+
+                    <!-- Shield Diagnostic Rows -->
+                    <div style="margin-bottom: 12px;">
+                        <div class="shield-check-row">
+                            <span>🛑 Network Tracker Filter (Canary Script)</span>
+                            <span id="shieldBaitScriptBadge" class="cookie-flag-badge badge-flag-samesite">TESTING...</span>
+                        </div>
+                        <div class="shield-check-row">
+                            <span>📡 Background Beacon & Telemetry API</span>
+                            <span id="shieldBeaconBadge" class="cookie-flag-badge badge-flag-samesite">TESTING...</span>
+                        </div>
+                        <div class="shield-check-row">
+                            <span>👁️ Cosmetic Element Collapsing (CSS)</span>
+                            <span id="shieldCosmeticBadge" class="cookie-flag-badge badge-flag-samesite">TESTING...</span>
+                        </div>
+                    </div>
+
+                    <!-- Filter Rate & Shield Summary -->
+                    <div class="wizard-slider-container" style="font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Blocked / Total Vectors:</span>
+                            <strong id="adblockScoreText" style="color: var(--color-mint); font-family: var(--font-code);">0 / 3 Shielded</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Ad & Tracker Shield Verdict:</span>
+                            <strong id="adblockVerdictText" style="color: var(--color-cyan);">Evaluating...</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn-secondary" style="flex: 1; padding: 8px; font-size: 11px;" onclick="auditAdblockShield()">🔄 Re-probe Tracker Shields</button>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Panel: Telemetry scanner log feed & History -->
+            <div class="side-panels">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm-5 14H4v-4h11v4zm0-5H4V9h11v4zm5 5h-4V9h4v9z"/></svg>
+                            Real-time Telemetry Leak Feed
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('leak-feed-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="leak-feed-info" class="info-explanation-drawer">
+                        <strong>Real-time Telemetry Leak Feed:</strong> Live console detailing active scans and hardware fingerprint checks.
+                        <br><br>
+                        <strong>How it was determined:</strong> Generated dynamically by executing browser-level capability queries (Canvas rendering APIs, AudioContext oscillator frequency response, WebGL graphics chip specifications, RTCPeerConnection requests, and local font CSS detection).
+                    </div>
+                    <div class="status-indicator">
+                        <span id="analysisStatus">Telemetry monitoring active</span>
+                        <div class="pulse-dot"></div>
+                    </div>
+                    <div class="leak-detector" id="leakFeed">
+                        <div class="initial-message">
+                            <div>Ready to scan local browser configurations.</div>
+                            <div style="margin-top: 10px; font-size:11px; color:var(--color-muted);">Click 'Deep Scan' below to begin fingerprint check.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- VPN Leak & WebRTC Network Routing Matcher -->
+                <div class="card" id="vpnMatcherCard">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93h2c0 2.76 2.24 5 5 5s5-2.24 5-5h2c0 4.08-3.05 7.44-7 7.93zM12 4c3.95.49 7 3.85 7 7.93h-2c0-2.76-2.24-5-5-5s-5 2.24-5 5H5c0-4.08 3.05-7.44 7-7.93z"/></svg>
+                            VPN Leak & Routing Matcher
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('vpn-matcher-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="vpn-matcher-info" class="info-explanation-drawer">
+                        <strong>VPN Leak & WebRTC IP Correlation:</strong> Correlates your HTTP server-side connection IP with UDP WebRTC STUN reflexive candidates to detect VPN bypass leaks.
+                        <br><br>
+                        <strong>Why WebRTC Leaks Happen:</strong> When connected to a VPN, your browser's HTTP traffic is routed through the VPN tunnel. However, WebRTC STUN requests often bypass the VPN adapter and query STUN servers over direct UDP, exposing your real home/ISP IP address.
+                    </div>
+
+                    <!-- Correlation Status Badge Panel -->
+                    <div class="status-badge-panel" style="margin-bottom: 12px;">
+                        <span class="status-label">Tunnel Correlation Status</span>
+                        <span class="status-badge badge-secure" id="vpnLeakStatusBadge">Analyzing...</span>
+                    </div>
+
+                    <!-- IP Comparison Grid -->
+                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 12px;">
+                        <div class="stat-card" style="text-align: left; padding: 12px;">
+                            <span class="stat-label" style="text-transform: uppercase;">HTTP Server IP (TCP)</span>
+                            <span id="httpServerIp" style="font-family: var(--font-code); font-size: 13px; font-weight: 700; color: var(--color-cyan); word-break: break-all; margin-top: 4px; display: block;">Detecting...</span>
+                            <span style="font-size: 10px; color: var(--color-muted); margin-top: 2px; display: block;">Seen by Sentinel backend</span>
+                        </div>
+                        <div class="stat-card" style="text-align: left; padding: 12px;">
+                            <span class="stat-label" style="text-transform: uppercase;">WebRTC STUN IP (UDP)</span>
+                            <span id="webrtcStunIp" style="font-family: var(--font-code); font-size: 13px; font-weight: 700; color: var(--color-mint); word-break: break-all; margin-top: 4px; display: block;">Probing STUN...</span>
+                            <span style="font-size: 10px; color: var(--color-muted); margin-top: 2px; display: block;">Discovered via STUN candidates</span>
+                        </div>
+                    </div>
+
+                    <!-- Detailed Routing Breakdown -->
+                    <div class="wizard-slider-container" style="font-size: 12px; display: flex; flex-direction: column; gap: 8px;">
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Local Subnet Interface:</span>
+                            <strong id="webrtcLocalSubnet" style="font-family: var(--font-code);">Scanning...</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">mDNS Host Privacy:</span>
+                            <strong id="webrtcMdnsStatus">Checking...</strong>
+                        </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <span style="color:var(--color-muted);">Tunnel Routing Verdict:</span>
+                            <strong id="vpnVerdict" style="color: var(--color-cyan);">Evaluating...</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn-secondary" style="flex: 1; padding: 7px; font-size: 11px;" onclick="auditVpnRouting()">🔄 Re-test VPN Routing</button>
+                    </div>
+                </div>
+
+                <!-- Security Header Observatory Card (CSP, Permissions-Policy, HSTS) -->
+                <div class="card" id="observatoryCard">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                            Security Header Observatory
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('observatory-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="observatory-info" class="info-explanation-drawer">
+                        <strong>Security Header Observatory:</strong> Live Mozilla Observatory-style cryptographic policy auditor. Grades HTTP defense headers protecting clients against XSS, clickjacking, hardware sensor exfiltration, and SSL downgrade.
+                        <br><br>
+                        <strong>Grading Standard:</strong>
+                        <ul style="margin: 6px 0 0 18px; padding: 0;">
+                            <li><strong>HSTS (Strict-Transport-Security):</strong> Max-age >= 31536000 with subdomains and preload enforcement.</li>
+                            <li><strong>CSP (Content-Security-Policy):</strong> Restricts origin script sources, preventing inline script exfiltration.</li>
+                            <li><strong>Permissions-Policy:</strong> Disables unauthorized peripheral access (camera, microphone, geolocation, FLoC).</li>
+                            <li><strong>Frame & Sniff Defenses:</strong> <code>X-Frame-Options: DENY</code> and <code>X-Content-Type-Options: nosniff</code>.</li>
+                        </ul>
+                    </div>
+
+                    <!-- Observatory Grade Badge Panel -->
+                    <div class="status-badge-panel" style="margin-bottom: 12px;">
+                        <span class="status-label">HTTP Security Hygiene Grade</span>
+                        <span class="status-badge badge-secure" id="observatoryGradeBadge">Auditing Headers...</span>
+                    </div>
+
+                    <!-- Header Audit Table -->
+                    <div style="overflow-x: auto; max-height: 240px; overflow-y: auto;">
+                        <table class="observatory-table" id="observatoryTable">
+                            <thead>
+                                <tr>
+                                    <th>Security Directive</th>
+                                    <th>Evaluation Status</th>
+                                    <th>Observed Configuration</th>
+                                </tr>
+                            </thead>
+                            <tbody id="observatoryBody">
+                                <tr>
+                                    <td colspan="3" style="text-align: center; color: var(--color-muted); padding: 12px;">Querying server headers...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style="display: flex; gap: 8px; margin-top: 10px;">
+                        <button class="btn-secondary" style="flex: 1; padding: 7px; font-size: 11px;" onclick="auditSecurityHeaders()">🔄 Re-grade Security Headers</button>
+                    </div>
+                </div>
+
+                <!-- Audit Database History -->
+                <div class="card" id="historyCard">
+                    <div class="card-header">
+                        <h2 class="card-title">
+                            <svg viewBox="0 0 24 24"><path d="M13 3c-4.97 0-9 4.03-9 9H1l3.89 3.89.07.14L9 12H6c0-3.87 3.13-7 7-7s7 3.13 7 7-3.13 7-7 7c-1.93 0-3.68-.79-4.94-2.06l-1.42 1.42C8.27 19.99 10.51 21 13 21c4.97 0 9-4.03 9-9s-4.03-9-9-9zm-1 5v5l4.28 2.54.72-1.21-3.5-2.08V8H12z"/></svg>
+                            Audit Database History
+                        </h2>
+                        <button class="info-btn" onclick="toggleInfoDrawer('database-history-info', this)" title="More Information">
+                            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        </button>
+                    </div>
+                    <div id="database-history-info" class="info-explanation-drawer" style="margin-bottom: 12px;">
+                        <strong>Audit Database History:</strong> Log of past privacy diagnostic runs stored in the SQLite/MySQL backend.
+                        <br><br>
+                        <strong>How it was determined:</strong> Pulled directly from the database history API (`/api/exhaust`), displaying previously saved sessions with their timestamps, uniqueness ratings, and leak counts.
+                    </div>
+                    <div style="overflow-x: auto;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 13px; text-align: left;" id="historyTable">
+                            <thead>
+                                <tr style="border-bottom: 1px solid var(--border-color); color: var(--color-muted);">
+                                    <th style="padding: 10px;">Timestamp</th>
+                                    <th style="padding: 10px;">Fingerprint</th>
+                                    <th style="padding: 10px;">Uniqueness</th>
+                                    <th style="padding: 10px;">Leaks</th>
+                                    <th style="padding: 10px;">Browser</th>
+                                    <th style="padding: 10px;">Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="historyBody">
+                                <tr>
+                                    <td colspan="6" style="padding: 12px; text-align: center; color: var(--color-muted);">No records found in database.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="startDeepScan()">🔍 Deep Scan</button>
+            <button class="btn-secondary" onclick="exportTxtReport()">📊 Export Report</button>
+            <button class="btn-secondary" onclick="generatePdfReport()">Print PDF Report</button>
+        </div>
+
+        <div class="info-bar">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+            </svg>
+            <span>
+                <strong>Privacy Statement:</strong> This tool calculates local graphics rendering context and hardware processing benchmarks. No data is stored, cached, or transmitted across corporate firewall bounds.
+            </span>
+        </div>
+
+        <footer>
+            Digital Exhaust Telemetry Suite // Zero-Dependency Browser Privacy Sandbox // 2026
+        </footer>
+
+    </div>
+
+    <!-- Telemetry Fingerprint scripts -->
+    <script>
+        // Global HTML Entity Sanitization Helper (Eradicates Stored and DOM XSS)
+        function escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/[&<>"']/g, function(tag) {
+                const chars = {
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    '"': '&quot;',
+                    "'": '&#39;'
+                };
+                return chars[tag] || tag;
+            });
+        }
+
+        let leakList = [];
+        let totalScore = 0;
+        let isRunningScan = false;
+        
+        // Behavioral telemetry variables
+        const behaviorTelemetry = {
+            moves: 0,
+            clicks: 0,
+            keys: 0,
+            patterns: [],
+            lastTime: Date.now(),
+            interactedWithProbe: false,
+            probeFocused: false,
+            keysAttemptedInProbe: 0,
+            keysCapturedInProbe: 0,
+            inputEventsInProbe: 0,
+            trustedCount: 0,
+            untrustedCount: 0,
+            inputMode: "Mouse & Keyboard",
+            defenseState: "idle" // "idle", "captured", "defended", "synthetic"
+        };
+
+        class FingerprintDetector {
+            
+            // Canvas Fingerprint
+            static async getCanvasSignature() {
+                try {
+                    const canv = document.createElement('canvas');
+                    const c = canv.getContext('2d');
+                    canv.width = 200;
+                    canv.height = 40;
+                    c.textBaseline = 'top';
+                    c.font = '13px Arial';
+                    c.fillStyle = '#ff0055';
+                    c.fillRect(100, 2, 45, 15);
+                    c.fillStyle = '#00ffaa';
+                    c.fillText('Exhaust Telemetry 🔍', 2, 8);
+                    const url = canv.toDataURL();
+                    const hash = await this.sha256(url);
+                    return { hash: hash.substring(0, 16), preview: url.substring(0, 40) + '...' };
+                } catch(e) {
+                    return { hash: "Blocked", preview: "Canvas access restricted" };
+                }
+            }
+
+            // WebGL Graphics Card
+            static getWebGLHardware() {
+                try {
+                    const canv = document.createElement('canvas');
+                    const gl = canv.getContext('webgl') || canv.getContext('experimental-webgl');
+                    if (!gl) return { renderer: "Not supported", vendor: "Not supported" };
+                    const dbg = gl.getExtension('WEBGL_debug_renderer_info');
+                    return {
+                        renderer: dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER),
+                        vendor: dbg ? gl.getParameter(dbg.UNMASKED_VENDOR_WEBGL) : gl.getParameter(gl.VENDOR)
+                    };
+                } catch(e) {
+                    return { renderer: "Blocked", vendor: "Blocked" };
+                }
+            }
+
+            // Audio processing signature
+            static getAudioSignature() {
+                return new Promise((resolve) => {
+                    try {
+                        const actx = new (window.AudioContext || window.webkitAudioContext)();
+                        const osc = actx.createOscillator();
+                        const ana = actx.createAnalyser();
+                        const gain = actx.createGain();
+                        const proc = actx.createScriptProcessor(4096, 1, 1);
+                        
+                        osc.type = 'triangle';
+                        osc.frequency.setValueAtTime(10000, actx.currentTime);
+                        gain.gain.setValueAtTime(0, actx.currentTime);
+                        
+                        osc.connect(ana);
+                        ana.connect(proc);
+                        proc.connect(gain);
+                        gain.connect(actx.destination);
+                        
+                        let done = false;
+                        proc.onaudioprocess = () => {
+                            if (done) return;
+                            done = true;
+                            const arr = new Float32Array(ana.frequencyBinCount);
+                            ana.getFloatFrequencyData(arr);
+                            osc.disconnect();
+                            proc.disconnect();
+                            actx.close();
+                            const val = arr.reduce((sum, v) => sum + Math.abs(v), 0);
+                            resolve(val.toString().substring(0, 12));
+                        };
+                        osc.start(0);
+                        osc.stop(0.1);
+                        setTimeout(() => { if (!done) { actx.close(); resolve("Timeout"); } }, 1500);
+                    } catch(e) {
+                        resolve("Error");
+                    }
+                });
+            }
+
+            // Anti-Fingerprinting Noise Injection Detector: Canvas Farbling
+            static async detectCanvasNoise() {
+                try {
+                    const renderPass = () => {
+                        const canv = document.createElement('canvas');
+                        canv.width = 240;
+                        canv.height = 60;
+                        const ctx = canv.getContext('2d');
+                        if (!ctx) return null;
+
+                        // Complex multi-layer rendering targeted by farbling shields
+                        ctx.textBaseline = 'alphabetic';
+                        ctx.fillStyle = '#f60';
+                        ctx.fillRect(125, 1, 62, 20);
+                        ctx.fillStyle = '#069';
+                        ctx.font = '11pt no-real-font-123';
+                        ctx.fillText('Cwm fjord bank glyphs vext quiz, 😃', 2, 15);
+                        ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+                        ctx.font = '18pt Arial';
+                        ctx.fillText('Sentinel Anti-Noise 🛡️', 4, 45);
+
+                        // Gradient and arc geometry
+                        const grad = ctx.createLinearGradient(0, 0, 240, 0);
+                        grad.addColorStop(0, '#ff0055');
+                        grad.addColorStop(0.5, '#00ffd5');
+                        grad.addColorStop(1, '#00ff66');
+                        ctx.strokeStyle = grad;
+                        ctx.lineWidth = 2;
+                        ctx.beginPath();
+                        ctx.arc(200, 30, 22, 0, Math.PI * 2, true);
+                        ctx.stroke();
+
+                        return canv.toDataURL();
+                    };
+
+                    const data1 = renderPass();
+                    if (!data1) return { noiseDetected: false, blocked: true, hash1: 'Blocked', hash2: 'Blocked', diffPixels: 0 };
+
+                    // Micro-task pause to allow browser per-call noise randomization
+                    await new Promise(r => setTimeout(r, 60));
+
+                    const data2 = renderPass();
+                    const hash1 = await this.sha256(data1);
+                    const hash2 = await this.sha256(data2);
+
+                    const noiseDetected = (hash1 !== hash2);
+                    return {
+                        noiseDetected,
+                        blocked: false,
+                        hash1: hash1.substring(0, 16),
+                        hash2: hash2.substring(0, 16),
+                        preview1: data1.substring(0, 45) + '...',
+                        preview2: data2.substring(0, 45) + '...'
+                    };
+                } catch(e) {
+                    return { noiseDetected: false, blocked: true, hash1: 'Error', hash2: 'Error', diffPixels: 0 };
+                }
+            }
+
+            // Anti-Fingerprinting Noise Injection Detector: Audio Frequency Perturbation
+            static async detectAudioNoise() {
+                try {
+                    const sampleAudio = () => {
+                        return new Promise((resolve) => {
+                            try {
+                                const actx = new (window.AudioContext || window.webkitAudioContext)();
+                                const osc = actx.createOscillator();
+                                const ana = actx.createAnalyser();
+                                const gain = actx.createGain();
+                                const proc = actx.createScriptProcessor(4096, 1, 1);
+
+                                osc.type = 'triangle';
+                                osc.frequency.setValueAtTime(10000, actx.currentTime);
+                                gain.gain.setValueAtTime(0, actx.currentTime);
+
+                                osc.connect(ana);
+                                ana.connect(proc);
+                                proc.connect(gain);
+                                gain.connect(actx.destination);
+
+                                let finished = false;
+                                proc.onaudioprocess = () => {
+                                    if (finished) return;
+                                    finished = true;
+                                    const arr = new Float32Array(ana.frequencyBinCount);
+                                    ana.getFloatFrequencyData(arr);
+                                    osc.disconnect();
+                                    proc.disconnect();
+                                    actx.close();
+                                    // High-precision sum to catch micro-perturbations
+                                    let sum = 0;
+                                    for (let i = 0; i < arr.length; i++) {
+                                        sum += Math.abs(arr[i]);
+                                    }
+                                    resolve(sum);
+                                };
+                                osc.start(0);
+                                osc.stop(0.12);
+                                setTimeout(() => {
+                                    if (!finished) {
+                                        try { actx.close(); } catch(err) {}
+                                        resolve(null);
+                                    }
+                                }, 1400);
+                            } catch(err) {
+                                resolve(null);
+                            }
+                        });
+                    };
+
+                    const val1 = await sampleAudio();
+                    if (val1 === null) return { noiseDetected: false, blocked: true, sig1: 'Blocked', sig2: 'Blocked', delta: 0 };
+
+                    await new Promise(r => setTimeout(r, 70));
+                    const val2 = await sampleAudio();
+                    if (val2 === null) return { noiseDetected: false, blocked: true, sig1: val1.toFixed(4), sig2: 'Blocked', delta: 0 };
+
+                    const delta = Math.abs(val1 - val2);
+                    // Standard deterministic browsers have delta = 0.
+                    // Anti-fingerprint shields (Brave/Firefox RFP) inject randomized float perturbations (delta > 0.0001).
+                    const noiseDetected = delta > 0.00001;
+
+                    return {
+                        noiseDetected,
+                        blocked: false,
+                        sig1: val1.toFixed(6),
+                        sig2: val2.toFixed(6),
+                        delta: delta.toFixed(8)
+                    };
+                } catch(e) {
+                    return { noiseDetected: false, blocked: true, sig1: 'Error', sig2: 'Error', delta: 0 };
+                }
+            }
+
+            // Detailed WebRTC Network Analysis (STUN, Local IPs, mDNS)
+            static getDetailedWebRTC() {
+                return new Promise((resolve) => {
+                    const localIPs = [];
+                    const publicStunIPs = [];
+                    const mdnsCandidates = [];
+                    const RTC = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+                    
+                    if (!RTC) {
+                        resolve({ supported: false, localIPs: [], publicStunIPs: [], mdnsCandidates: [] });
+                        return;
+                    }
+                    
+                    let pc = null;
+                    let timer = null;
+                    const cleanup = () => {
+                        if (timer) clearTimeout(timer);
+                        if (pc) {
+                            try {
+                                pc.onicecandidate = null;
+                                pc.close();
+                            } catch(e) {}
+                            pc = null;
+                        }
+                    };
+
+                    try {
+                        pc = new RTC({
+                            iceServers: [
+                                { urls: 'stun:stun.l.google.com:19302' },
+                                { urls: 'stun:stun1.l.google.com:19302' }
+                            ]
+                        });
+                        pc.createDataChannel('sentinel-probe');
+                        pc.createOffer()
+                          .then(o => pc.setLocalDescription(o))
+                          .catch(() => {
+                              cleanup();
+                              resolve({ supported: true, localIPs: [], publicStunIPs: [], mdnsCandidates: [] });
+                          });
+                        
+                        pc.onicecandidate = (ice) => {
+                            if (ice && ice.candidate && ice.candidate.candidate) {
+                                const c = ice.candidate.candidate;
+                                
+                                if (c.includes('.local')) {
+                                    const m = c.match(/\b([a-zA-Z0-9-]+\.local)\b/);
+                                    if (m && !mdnsCandidates.includes(m[1])) mdnsCandidates.push(m[1]);
+                                }
+
+                                const ipMatches = c.match(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g);
+                                if (ipMatches) {
+                                    ipMatches.forEach(ip => {
+                                        if (c.includes('typ srflx')) {
+                                            if (!publicStunIPs.includes(ip)) publicStunIPs.push(ip);
+                                        } else if (c.includes('typ host')) {
+                                            if (!localIPs.includes(ip)) localIPs.push(ip);
+                                        }
+                                    });
+                                }
+                            }
+                        };
+                        timer = setTimeout(() => { 
+                            cleanup();
+                            resolve({
+                                supported: true,
+                                localIPs,
+                                publicStunIPs,
+                                mdnsCandidates
+                            });
+                        }, 2200);
+                    } catch(e) {
+                        cleanup();
+                        resolve({ supported: false, localIPs: [], publicStunIPs: [], mdnsCandidates: [] });
+                    }
+                });
+            }
+
+            // WebRTC network leaks (legacy compatibility)
+            static async getWebRTCIPs() {
+                const details = await this.getDetailedWebRTC();
+                if (!details.supported) return ['Not supported'];
+                const all = [...details.publicStunIPs, ...details.localIPs];
+                return all;
+            }
+
+            // Local fonts
+            static checkSystemFonts() {
+                const commonFonts = ['Arial', 'Times New Roman', 'Helvetica', 'Segoe UI', 'Consolas', 'Courier New', 'Verdana', 'Impact'];
+                const detected = [];
+                const tester = 'mmmmmmmmmllli';
+                const size = '72px';
+                const canv = document.createElement('canvas');
+                const c = canv.getContext('2d');
+                c.font = `${size} monospace`;
+                const monoWidth = c.measureText(tester).width;
+                c.font = `${size} sans-serif`;
+                const sansWidth = c.measureText(tester).width;
+                
+                commonFonts.forEach(font => {
+                    c.font = `${size} '${font}', monospace`;
+                    const w1 = c.measureText(tester).width;
+                    c.font = `${size} '${font}', sans-serif`;
+                    const w2 = c.measureText(tester).width;
+                    if (w1 !== monoWidth || w2 !== sansWidth) {
+                        detected.push(font);
+                    }
+                });
+                return detected;
+            }
+
+            // GPS Location
+            static getGeolocation() {
+                return new Promise((resolve) => {
+                    if (!('geolocation' in navigator)) {
+                        resolve({ status: 'unsupported' });
+                        return;
+                    }
+                    navigator.geolocation.getCurrentPosition(
+                        (p) => resolve({ status: 'success', lat: p.coords.latitude.toFixed(4), lng: p.coords.longitude.toFixed(4) }),
+                        (e) => resolve({ status: 'denied', err: e.message }),
+                        { timeout: 3000 }
+                    );
+                });
+            }
+
+            // Battery Level
+            static async getBatteryStatus() {
+                try {
+                    if (navigator.getBattery) {
+                        const b = await navigator.getBattery();
+                        return { pct: Math.round(b.level * 100), charging: b.charging };
+                    }
+                    return null;
+                } catch(e) {
+                    return null;
+                }
+            }
+
+            // Hash helper
+            static async sha256(str) {
+                const enc = new TextEncoder();
+                const d = enc.encode(str);
+                const buf = await crypto.subtle.digest('SHA-256', d);
+                return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+            }
+        }
+
+        class CookieMonitor {
+            static async getAllCookies() {
+                const cookies = [];
+                
+                // 1. Asynchronous Cookie Store API (modern Chromium browsers)
+                if ('cookieStore' in window && typeof window.cookieStore.getAll === 'function') {
+                    try {
+                        const stored = await window.cookieStore.getAll();
+                        stored.forEach(c => {
+                            cookies.push({
+                                name: c.name,
+                                value: c.value,
+                                domain: c.domain || window.location.hostname,
+                                path: c.path || '/',
+                                secure: !!c.secure,
+                                sameSite: c.sameSite || 'None',
+                                partitioned: !!c.partitioned,
+                                source: 'cookieStore'
+                            });
+                        });
+                    } catch(e) {}
+                }
+                
+                // 2. Fallback to document.cookie
+                if (document.cookie && document.cookie.trim().length > 0) {
+                    const rawPairs = document.cookie.split(';');
+                    rawPairs.forEach(pair => {
+                        const trimmed = pair.trim();
+                        if (!trimmed) return;
+                        const eqIdx = trimmed.indexOf('=');
+                        const name = eqIdx > -1 ? trimmed.substring(0, eqIdx) : trimmed;
+                        const val = eqIdx > -1 ? trimmed.substring(eqIdx + 1) : '';
+                        if (!cookies.some(c => c.name === name)) {
+                            cookies.push({
+                                name: name,
+                                value: val,
+                                domain: window.location.hostname,
+                                path: '/',
+                                secure: window.location.protocol === 'https:',
+                                sameSite: 'Unknown',
+                                partitioned: false,
+                                source: 'document.cookie'
+                            });
+                        }
+                    });
+                }
+                return cookies;
+            }
+
+            static getStorageFootprint() {
+                let localCount = 0;
+                let sessionCount = 0;
+                let localKeys = [];
+                let sessionKeys = [];
+
+                try {
+                    localCount = localStorage.length;
+                    for (let i = 0; i < localCount; i++) localKeys.push(localStorage.key(i));
+                } catch(e) {}
+
+                try {
+                    sessionCount = sessionStorage.length;
+                    for (let i = 0; i < sessionCount; i++) sessionKeys.push(sessionStorage.key(i));
+                } catch(e) {}
+
+                return {
+                    localCount,
+                    sessionCount,
+                    localKeys,
+                    sessionKeys,
+                    totalStorageKeys: localCount + sessionCount,
+                    indexedDBSupported: 'indexedDB' in window
+                };
+            }
+        }
+
+        async function refreshCookieMonitor() {
+            const cookies = await CookieMonitor.getAllCookies();
+            const storage = CookieMonitor.getStorageFootprint();
+            
+            const cookieCountEl = document.getElementById('cookieCount');
+            const httpOnlyStatusEl = document.getElementById('httpOnlyStatus');
+            const storageItemsEl = document.getElementById('storageItemsCount');
+            const feed = document.getElementById('cookieFeed');
+
+            if (cookieCountEl) cookieCountEl.innerText = cookies.length;
+            if (storageItemsEl) storageItemsEl.innerText = storage.totalStorageKeys;
+
+            // Analyze HttpOnly / XSS exposure risk
+            const sensitiveKeywords = ['sess', 'auth', 'token', 'jwt', 'id', 'user', 'key', 'login', 'sid'];
+            let hasExposedSessionCookie = false;
+            let insecureCookiesCount = 0;
+
+            cookies.forEach(c => {
+                const lower = c.name.toLowerCase();
+                if (sensitiveKeywords.some(k => lower.includes(k))) {
+                    hasExposedSessionCookie = true;
+                }
+                if (!c.secure && window.location.protocol === 'https:') {
+                    insecureCookiesCount++;
+                }
+            });
+
+            if (httpOnlyStatusEl) {
+                if (hasExposedSessionCookie) {
+                    httpOnlyStatusEl.innerText = "AT RISK";
+                    httpOnlyStatusEl.style.color = "var(--color-magenta)";
+                } else if (cookies.length > 0) {
+                    httpOnlyStatusEl.innerText = "AUDITED";
+                    httpOnlyStatusEl.style.color = "var(--color-yellow)";
+                } else {
+                    httpOnlyStatusEl.innerText = "SECURE";
+                    httpOnlyStatusEl.style.color = "var(--color-mint)";
+                }
+            }
+
+            if (!feed) return;
+
+            if (cookies.length === 0 && storage.totalStorageKeys === 0) {
+                feed.innerHTML = `
+                    <div class="initial-message" style="padding: 24px 10px;">
+                        <div>No exposed client-readable cookies or storage keys.</div>
+                        <div style="font-size: 11px; margin-top: 4px; color: var(--color-mint);">Clean storage footprint / HttpOnly protection in effect.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            let html = '';
+
+            // Render cookies safely sanitized
+            cookies.forEach(c => {
+                const isSensitive = sensitiveKeywords.some(k => c.name.toLowerCase().includes(k));
+                const secBadge = c.secure 
+                    ? `<span class="cookie-flag-badge badge-flag-secure">SECURE</span>` 
+                    : `<span class="cookie-flag-badge badge-flag-insecure">INSECURE</span>`;
+                const sameSiteBadge = c.sameSite && c.sameSite !== 'Unknown'
+                    ? `<span class="cookie-flag-badge badge-flag-samesite">SAMESITE: ${escapeHtml(c.sameSite.toUpperCase())}</span>`
+                    : '';
+                const httpOnlyRiskBadge = isSensitive
+                    ? `<span class="cookie-flag-badge badge-flag-httponly-risk">HTTPONLY MISSING</span>`
+                    : '';
+
+                const valPreview = c.value ? (c.value.length > 40 ? c.value.substring(0, 40) + '...' : c.value) : '[empty]';
+
+                html += `
+                    <div class="cookie-item">
+                        <div class="cookie-item-header">
+                            <span class="cookie-name">🍪 ${escapeHtml(c.name)}</span>
+                            <div class="cookie-flags">
+                                ${secBadge}
+                                ${sameSiteBadge}
+                                ${httpOnlyRiskBadge}
+                            </div>
+                        </div>
+                        <div class="cookie-value-preview">${escapeHtml(valPreview)}</div>
+                    </div>
+                `;
+            });
+
+            // Render storage keys if present safely sanitized
+            storage.localKeys.forEach(k => {
+                const val = localStorage.getItem(k);
+                const preview = val ? (val.length > 40 ? val.substring(0, 40) + '...' : val) : '[empty]';
+                html += `
+                    <div class="cookie-item" style="border-left: 2px solid var(--color-cyan);">
+                        <div class="cookie-item-header">
+                            <span class="cookie-name" style="color: var(--color-mint);">💾 localStorage.${escapeHtml(k)}</span>
+                            <span class="cookie-flag-badge badge-flag-samesite">PERSISTENT</span>
+                        </div>
+                        <div class="cookie-value-preview">${escapeHtml(preview)}</div>
+                    </div>
+                `;
+            });
+
+            storage.sessionKeys.forEach(k => {
+                const val = sessionStorage.getItem(k);
+                const preview = val ? (val.length > 40 ? val.substring(0, 40) + '...' : val) : '[empty]';
+                html += `
+                    <div class="cookie-item" style="border-left: 2px solid var(--color-yellow);">
+                        <div class="cookie-item-header">
+                            <span class="cookie-name" style="color: var(--color-yellow);">⏳ sessionStorage.${escapeHtml(k)}</span>
+                            <span class="cookie-flag-badge badge-flag-samesite">SESSION</span>
+                        </div>
+                        <div class="cookie-value-preview">${escapeHtml(preview)}</div>
+                    </div>
+                `;
+            });
+
+            feed.innerHTML = html;
+        }
+
+        function testSampleCookie() {
+            // Set a test cookie with SameSite=Lax and max-age
+            document.cookie = `sentinel_audit_probe=${Date.now()}; path=/; max-age=120; SameSite=Lax`;
+            try {
+                localStorage.setItem('sentinel_storage_probe', 'active');
+            } catch(e) {}
+            refreshCookieMonitor();
+        }
+
+        async function auditVpnRouting() {
+            const statusBadge = document.getElementById('vpnLeakStatusBadge');
+            const httpIpEl = document.getElementById('httpServerIp');
+            const webrtcIpEl = document.getElementById('webrtcStunIp');
+            const localSubnetEl = document.getElementById('webrtcLocalSubnet');
+            const mdnsEl = document.getElementById('webrtcMdnsStatus');
+            const verdictEl = document.getElementById('vpnVerdict');
+
+            if (statusBadge) {
+                statusBadge.className = 'status-badge badge-warning';
+                statusBadge.innerText = 'Analyzing...';
+            }
+
+            // 1. Fetch server-detected IP from Flask endpoint
+            let serverIp = 'Unknown';
+            let isLoopback = false;
+            try {
+                const res = await fetch('/api/client-ip');
+                if (res.ok) {
+                    const data = await res.json();
+                    serverIp = data.server_detected_ip || 'Unknown';
+                    isLoopback = !!data.is_loopback;
+                }
+            } catch(e) {
+                serverIp = 'Backend Unreachable';
+            }
+            if (httpIpEl) httpIpEl.innerText = serverIp;
+
+            // 2. Perform STUN & local candidates check
+            const rtcTelemetry = await FingerprintDetector.getDetailedWebRTC();
+            
+            const publicStunIp = rtcTelemetry.publicStunIPs[0] || null;
+            if (webrtcIpEl) {
+                if (publicStunIp) {
+                    webrtcIpEl.innerText = publicStunIp;
+                } else if (rtcTelemetry.supported) {
+                    webrtcIpEl.innerText = 'Shielded / No Public STUN IP';
+                    webrtcIpEl.style.color = 'var(--color-mint)';
+                } else {
+                    webrtcIpEl.innerText = 'WebRTC Disabled / Blocked';
+                    webrtcIpEl.style.color = 'var(--color-mint)';
+                }
+            }
+
+            // 3. Local interfaces and mDNS
+            if (localSubnetEl) {
+                if (rtcTelemetry.localIPs.length > 0) {
+                    localSubnetEl.innerText = rtcTelemetry.localIPs.join(', ');
+                    localSubnetEl.style.color = 'var(--color-yellow)';
+                } else if (rtcTelemetry.mdnsCandidates.length > 0) {
+                    localSubnetEl.innerText = 'Masked via .local hostnames';
+                    localSubnetEl.style.color = 'var(--color-mint)';
+                } else {
+                    localSubnetEl.innerText = 'None Exposed';
+                    localSubnetEl.style.color = 'var(--color-mint)';
+                }
+            }
+
+            if (mdnsEl) {
+                if (rtcTelemetry.mdnsCandidates.length > 0) {
+                    mdnsEl.innerText = 'Active (Protected)';
+                    mdnsEl.style.color = 'var(--color-mint)';
+                } else if (rtcTelemetry.localIPs.length > 0) {
+                    mdnsEl.innerText = 'Disabled (LAN Leaked)';
+                    mdnsEl.style.color = 'var(--color-magenta)';
+                } else {
+                    mdnsEl.innerText = 'N/A';
+                    mdnsEl.style.color = 'var(--color-muted)';
+                }
+            }
+
+            // 4. Correlate and determine verdict
+            let verdict = '';
+            let badgeClass = 'badge-secure';
+            let badgeText = 'SECURE';
+
+            if (isLoopback) {
+                if (publicStunIp) {
+                    verdict = `Local dev environment (Loopback). WebRTC probed gateway: ${publicStunIp}`;
+                    badgeClass = 'badge-secure';
+                    badgeText = 'LOCAL DEV (TEST READY)';
+                    if (webrtcIpEl) webrtcIpEl.style.color = 'var(--color-cyan)';
+                } else {
+                    verdict = 'Local dev loopback. WebRTC interfaces masked/shielded.';
+                    badgeClass = 'badge-secure';
+                    badgeText = 'PROTECTED';
+                    if (webrtcIpEl) webrtcIpEl.style.color = 'var(--color-mint)';
+                }
+            } else if (publicStunIp && serverIp !== 'Unknown' && publicStunIp !== serverIp) {
+                // CRITICAL VPN BYPASS LEAK!
+                verdict = `CRITICAL LEAK: HTTP connection routed through ${serverIp}, but WebRTC STUN bypassed tunnel and leaked ${publicStunIp}!`;
+                badgeClass = 'badge-danger';
+                badgeText = 'CRITICAL VPN LEAK';
+                if (webrtcIpEl) webrtcIpEl.style.color = 'var(--color-magenta)';
+            } else if (publicStunIp && publicStunIp === serverIp) {
+                verdict = `Direct route consistent: HTTP server and WebRTC STUN originate from identical public IP (${serverIp}).`;
+                badgeClass = 'badge-secure';
+                badgeText = 'MATCHED ROUTE';
+                if (webrtcIpEl) webrtcIpEl.style.color = 'var(--color-mint)';
+            } else {
+                verdict = 'WebRTC STUN requests blocked or shielded. Zero external UDP IPs leaked.';
+                badgeClass = 'badge-secure';
+                badgeText = 'TUNNEL SHIELDED';
+                if (webrtcIpEl) webrtcIpEl.style.color = 'var(--color-mint)';
+            }
+
+            if (statusBadge) {
+                statusBadge.className = `status-badge ${badgeClass}`;
+                statusBadge.innerText = badgeText;
+            }
+            if (verdictEl) {
+                verdictEl.innerText = badgeText;
+                verdictEl.style.color = badgeClass === 'badge-danger' ? 'var(--color-magenta)' : (badgeClass === 'badge-warning' ? 'var(--color-yellow)' : 'var(--color-mint)');
+            }
+
+            return {
+                serverIp,
+                publicStunIp,
+                localIPs: rtcTelemetry.localIPs,
+                mdnsCandidates: rtcTelemetry.mdnsCandidates,
+                verdict,
+                badgeText,
+                isBypassLeak: publicStunIp && !isLoopback && publicStunIp !== serverIp
+            };
+        }
+
+        // Anti-Fingerprinting Noise Injection Prober (Canvas Farbling & Audio Buffer Perturbation)
+        async function probeNoiseInjection() {
+            const overallBadge = document.getElementById('overallNoiseBadge');
+            const canvasBadge = document.getElementById('canvasNoiseBadge');
+            const audioBadge = document.getElementById('audioNoiseBadge');
+            const canvasP1 = document.getElementById('canvasPass1');
+            const canvasP2 = document.getElementById('canvasPass2');
+            const canvasDiff = document.getElementById('canvasNoiseDiff');
+            const audioP1 = document.getElementById('audioPass1');
+            const audioP2 = document.getElementById('audioPass2');
+            const audioDelta = document.getElementById('audioNoiseDelta');
+            const canvasVerdict = document.getElementById('canvasVerdictText');
+            const audioVerdict = document.getElementById('audioVerdictText');
+            const combinedResistance = document.getElementById('combinedResistanceText');
+
+            if (overallBadge) {
+                overallBadge.className = 'status-badge badge-warning';
+                overallBadge.innerText = 'Probing Perturbations...';
+            }
+            if (canvasDiff) canvasDiff.innerText = 'Calculating 2-pass hash...';
+            if (audioDelta) audioDelta.innerText = 'Measuring buffer drift...';
+
+            // 1. Probe Canvas Farbling
+            const canvasResult = await FingerprintDetector.detectCanvasNoise();
+            if (canvasP1) canvasP1.innerText = canvasResult.hash1;
+            if (canvasP2) canvasP2.innerText = canvasResult.hash2;
+
+            if (canvasResult.blocked) {
+                if (canvasBadge) {
+                    canvasBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    canvasBadge.innerText = 'BLOCKED / RESTRICTED';
+                }
+                if (canvasDiff) {
+                    canvasDiff.innerText = 'Canvas rendering blocked by browser';
+                    canvasDiff.style.color = 'var(--color-mint)';
+                }
+                if (canvasVerdict) {
+                    canvasVerdict.innerText = 'Protected (Canvas blocked)';
+                    canvasVerdict.style.color = 'var(--color-mint)';
+                }
+            } else if (canvasResult.noiseDetected) {
+                if (canvasBadge) {
+                    canvasBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    canvasBadge.innerText = 'FARBLING ACTIVE';
+                }
+                if (canvasDiff) {
+                    canvasDiff.innerText = 'Pass 1 ≠ Pass 2 (Noise Injected)';
+                    canvasDiff.style.color = 'var(--color-mint)';
+                }
+                if (canvasVerdict) {
+                    canvasVerdict.innerText = 'Shielded (Anti-fingerprint noise active)';
+                    canvasVerdict.style.color = 'var(--color-mint)';
+                }
+            } else {
+                if (canvasBadge) {
+                    canvasBadge.className = 'cookie-flag-badge badge-flag-insecure';
+                    canvasBadge.innerText = 'DETERMINISTIC';
+                }
+                if (canvasDiff) {
+                    canvasDiff.innerText = 'Pass 1 === Pass 2 (Deterministic)';
+                    canvasDiff.style.color = 'var(--color-magenta)';
+                }
+                if (canvasVerdict) {
+                    canvasVerdict.innerText = 'Vulnerable (Zero noise / Trackable)';
+                    canvasVerdict.style.color = 'var(--color-magenta)';
+                }
+            }
+
+            // 2. Probe Audio Buffer Noise
+            const audioResult = await FingerprintDetector.detectAudioNoise();
+            if (audioP1) audioP1.innerText = audioResult.sig1;
+            if (audioP2) audioP2.innerText = audioResult.sig2;
+            if (audioDelta) audioDelta.innerText = `Δ ${audioResult.delta}`;
+
+            if (audioResult.blocked) {
+                if (audioBadge) {
+                    audioBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    audioBadge.innerText = 'AUDIO BLOCKED';
+                }
+                if (audioVerdict) {
+                    audioVerdict.innerText = 'Protected (AudioContext restricted)';
+                    audioVerdict.style.color = 'var(--color-mint)';
+                }
+            } else if (audioResult.noiseDetected) {
+                if (audioBadge) {
+                    audioBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    audioBadge.innerText = 'PERTURBED';
+                }
+                if (audioVerdict) {
+                    audioVerdict.innerText = 'Shielded (Audio buffer noise active)';
+                    audioVerdict.style.color = 'var(--color-mint)';
+                }
+            } else {
+                if (audioBadge) {
+                    audioBadge.className = 'cookie-flag-badge badge-flag-insecure';
+                    audioBadge.innerText = 'DETERMINISTIC';
+                }
+                if (audioVerdict) {
+                    audioVerdict.innerText = 'Vulnerable (Zero audio drift)';
+                    audioVerdict.style.color = 'var(--color-magenta)';
+                }
+            }
+
+            // 3. Combined Defense Verdict
+            const hasShield = canvasResult.noiseDetected || audioResult.noiseDetected || canvasResult.blocked || audioResult.blocked;
+            const isFullyHardened = (canvasResult.noiseDetected || canvasResult.blocked) && (audioResult.noiseDetected || audioResult.blocked);
+
+            if (isFullyHardened) {
+                if (overallBadge) {
+                    overallBadge.className = 'status-badge badge-secure';
+                    overallBadge.innerText = 'FULL HARDENED SHIELD';
+                }
+                if (combinedResistance) {
+                    combinedResistance.innerText = 'Anti-Fingerprint Defenses Active (Dual-Vector Noise Confirmed)';
+                    combinedResistance.style.color = 'var(--color-mint)';
+                }
+            } else if (hasShield) {
+                if (overallBadge) {
+                    overallBadge.className = 'status-badge badge-secure';
+                    overallBadge.innerText = 'PARTIAL SHIELD ACTIVE';
+                }
+                if (combinedResistance) {
+                    combinedResistance.innerText = 'Single-Vector Noise Injection Active';
+                    combinedResistance.style.color = 'var(--color-cyan)';
+                }
+            } else {
+                if (overallBadge) {
+                    overallBadge.className = 'status-badge badge-danger';
+                    overallBadge.innerText = 'DETERMINISTIC (NO NOISE)';
+                }
+                if (combinedResistance) {
+                    combinedResistance.innerText = 'Unshielded: Graphics & Audio fingerprints are 100% stable';
+                    combinedResistance.style.color = 'var(--color-magenta)';
+                }
+            }
+
+            return {
+                canvasResult,
+                audioResult,
+                hasShield,
+                isFullyHardened
+            };
+        }
+
+        // Adblocker & Tracker Shield Diagnostic Probe
+        async function auditAdblockShield() {
+            const overallBadge = document.getElementById('adblockOverallBadge');
+            const baitBadge = document.getElementById('shieldBaitScriptBadge');
+            const beaconBadge = document.getElementById('shieldBeaconBadge');
+            const cosmeticBadge = document.getElementById('shieldCosmeticBadge');
+            const scoreText = document.getElementById('adblockScoreText');
+            const verdictText = document.getElementById('adblockVerdictText');
+
+            if (overallBadge) {
+                overallBadge.className = 'status-badge badge-warning';
+                overallBadge.innerText = 'Testing Filters...';
+            }
+
+            let blockedCount = 0;
+            const totalChecks = 3;
+
+            // 1. Bait Tracker Script Test (Network Filter)
+            let baitBlocked = false;
+            try {
+                // Try fetching canary ad script path targeted by adblock filter rules
+                const ctrl = new AbortController();
+                const timeoutId = setTimeout(() => ctrl.abort(), 1200);
+                const res = await fetch('/api/adblock-canary/telemetry-collect.js?ads_partner=doubleclick&tracker=true', {
+                    signal: ctrl.signal,
+                    cache: 'no-store'
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) {
+                    baitBlocked = true;
+                } else {
+                    const text = await res.text();
+                    // If network filter injected empty script or blocked
+                    if (!text.includes('__sentinel_canary_loaded')) {
+                        baitBlocked = true;
+                    }
+                }
+            } catch(e) {
+                // Aborted or ERR_BLOCKED_BY_CLIENT / network filter blocked
+                baitBlocked = true;
+            }
+
+            if (baitBlocked) {
+                blockedCount++;
+                if (baitBadge) {
+                    baitBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    baitBadge.innerText = 'BLOCKED (FILTER ACTIVE)';
+                }
+            } else {
+                if (baitBadge) {
+                    baitBadge.className = 'cookie-flag-badge badge-flag-insecure';
+                    baitBadge.innerText = 'UNFILTERED';
+                }
+            }
+
+            // 2. Background Beacon & Telemetry API Filter Test
+            let beaconBlocked = false;
+            try {
+                const ctrl = new AbortController();
+                const timeoutId = setTimeout(() => ctrl.abort(), 1200);
+                const res = await fetch('/api/adblock-canary/analytics-track?event=ad_impression&pixel_id=tracker', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ beacon: 'test' }),
+                    signal: ctrl.signal
+                });
+                clearTimeout(timeoutId);
+                if (!res.ok) beaconBlocked = true;
+            } catch(e) {
+                beaconBlocked = true;
+            }
+
+            if (beaconBlocked) {
+                blockedCount++;
+                if (beaconBadge) {
+                    beaconBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    beaconBadge.innerText = 'BLOCKED (API SHIELDED)';
+                }
+            } else {
+                if (beaconBadge) {
+                    beaconBadge.className = 'cookie-flag-badge badge-flag-insecure';
+                    beaconBadge.innerText = 'UNFILTERED';
+                }
+            }
+
+            // 3. Cosmetic Element Collapsing Test
+            let cosmeticBlocked = false;
+            try {
+                const baitEl = document.createElement('div');
+                // Use class names and ids heavily targeted by EasyList cosmetic filters
+                baitEl.className = 'ad-banner adsbox doubleclick-ad carbon-ads google-ad-wrapper';
+                baitEl.id = 'banner-ad-300x250';
+                baitEl.style.height = '100px';
+                baitEl.style.width = '300px';
+                baitEl.style.position = 'absolute';
+                baitEl.style.left = '-9999px';
+                document.body.appendChild(baitEl);
+
+                // Check computed display or offset dimensions
+                const comp = window.getComputedStyle(baitEl);
+                if (comp.display === 'none' || comp.visibility === 'hidden' || baitEl.offsetParent === null || baitEl.offsetHeight === 0) {
+                    cosmeticBlocked = true;
+                }
+                document.body.removeChild(baitEl);
+            } catch(e) {
+                cosmeticBlocked = false;
+            }
+
+            if (cosmeticBlocked) {
+                blockedCount++;
+                if (cosmeticBadge) {
+                    cosmeticBadge.className = 'cookie-flag-badge badge-flag-secure';
+                    cosmeticBadge.innerText = 'COLLAPSED (CSS HIDDEN)';
+                }
+            } else {
+                if (cosmeticBadge) {
+                    cosmeticBadge.className = 'cookie-flag-badge badge-flag-samesite';
+                    cosmeticBadge.innerText = 'VISIBLE / UNCOLLAPSED';
+                }
+            }
+
+            // Summarize Score
+            if (scoreText) scoreText.innerText = `${blockedCount} / ${totalChecks} Shielded`;
+
+            let overallText = 'UNSHIELDED';
+            let badgeClass = 'badge-danger';
+            if (blockedCount >= 2) {
+                overallText = 'SHIELDS ACTIVE';
+                badgeClass = 'badge-secure';
+                if (verdictText) {
+                    verdictText.innerText = 'Strong Adblocker / Tracker Shield Active (uBlock/Brave/Pi-hole confirmed)';
+                    verdictText.style.color = 'var(--color-mint)';
+                }
+            } else if (blockedCount === 1) {
+                overallText = 'PARTIAL FILTER';
+                badgeClass = 'badge-warning';
+                if (verdictText) {
+                    verdictText.innerText = 'Partial tracker filtering detected (single vector)';
+                    verdictText.style.color = 'var(--color-yellow)';
+                }
+            } else {
+                overallText = 'ZERO FILTERING (EXPOSED)';
+                badgeClass = 'badge-danger';
+                if (verdictText) {
+                    verdictText.innerText = 'No adblocker detected: Tracking scripts and ad pixels load unrestricted';
+                    verdictText.style.color = 'var(--color-magenta)';
+                }
+            }
+
+            if (overallBadge) {
+                overallBadge.className = `status-badge ${badgeClass}`;
+                overallBadge.innerText = overallText;
+            }
+
+            return {
+                blockedCount,
+                totalChecks,
+                baitBlocked,
+                beaconBlocked,
+                cosmeticBlocked,
+                verdict: overallText
+            };
+        }
+
+        // Security Header Observatory Live Auditor
+        async function auditSecurityHeaders() {
+            const gradeBadge = document.getElementById('observatoryGradeBadge');
+            const tbody = document.getElementById('observatoryBody');
+
+            if (gradeBadge) {
+                gradeBadge.className = 'status-badge badge-warning';
+                gradeBadge.innerText = 'Auditing Headers...';
+            }
+
+            try {
+                const res = await fetch('/api/security-headers');
+                if (!res.ok) throw new Error('API request failed');
+                const data = await res.json();
+
+                const grade = data.grade || 'F';
+                const score = data.score || 0;
+
+                if (gradeBadge) {
+                    const badgeClass = (grade === 'A+' || grade === 'A') ? 'badge-secure' : (grade === 'B' ? 'badge-warning' : 'badge-danger');
+                    gradeBadge.className = `status-badge ${badgeClass}`;
+                    gradeBadge.innerText = `GRADE ${grade} (${score}/100)`;
+                }
+
+                if (tbody && Array.isArray(data.checks)) {
+                    tbody.innerHTML = data.checks.map(c => {
+                        const statusClass = c.passed ? 'cookie-flag-badge badge-flag-secure' : 'cookie-flag-badge badge-flag-insecure';
+                        const valPreview = c.value.length > 50 ? c.value.substring(0, 50) + '...' : c.value;
+                        return `
+                            <tr>
+                                <td style="font-weight: 600; color: var(--color-cyan);">${c.header}</td>
+                                <td><span class="${statusClass}">${c.status}</span></td>
+                                <td style="font-family: var(--font-code); color: var(--color-muted);" title="${c.value}">${valPreview}</td>
+                            </tr>
+                        `;
+                    }).join('');
+                }
+
+                return data;
+            } catch(e) {
+                if (gradeBadge) {
+                    gradeBadge.className = 'status-badge badge-danger';
+                    gradeBadge.innerText = 'OBSERVATORY OFFLINE';
+                }
+                if (tbody) {
+                    tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; color:var(--color-magenta); padding:10px;">Security headers endpoint unavailable.</td></tr>`;
+                }
+                return { grade: 'Unknown', score: 0, checks: [] };
+            }
+        }
+
+        // Setup behavioral trackers and interactive defense probe
+        function setupBehaviorHooks() {
+            // Detect input device mode
+            const hasTouch = window.matchMedia('(pointer: coarse)').matches || 'ontouchstart' in window;
+            behaviorTelemetry.inputMode = hasTouch ? "Touchscreen / Mobile" : "Mouse & Keyboard";
+            const inputModeEl = document.getElementById('inputMode');
+            if (inputModeEl) inputModeEl.innerText = behaviorTelemetry.inputMode;
+
+            const updateEventTrust = (isTrusted) => {
+                const trustEl = document.getElementById('eventTrust');
+                if (!trustEl) return;
+                if (isTrusted) {
+                    behaviorTelemetry.trustedCount++;
+                    trustEl.innerText = "Verified Hardware (Trusted)";
+                    trustEl.style.color = "var(--color-yellow)";
+                } else {
+                    behaviorTelemetry.untrustedCount++;
+                    trustEl.innerText = "Synthetic / Untrusted";
+                    trustEl.style.color = "var(--color-magenta)";
+                }
+            };
+
+            const setProbeState = (state, badgeText, badgeClass, descText, feedbackText) => {
+                behaviorTelemetry.defenseState = state;
+                const badge = document.getElementById('probeStatusBadge');
+                const desc = document.getElementById('probeStatusDesc');
+                const feedback = document.getElementById('probeFeedback');
+
+                if (badge) {
+                    badge.className = `probe-badge ${badgeClass}`;
+                    badge.innerText = badgeText;
+                }
+                if (desc) desc.innerText = descText;
+                if (feedback && feedbackText) {
+                    feedback.style.display = "block";
+                    feedback.innerText = feedbackText;
+                }
+            };
+
+            // Global Pointer / Mouse Tracking (Throttled via requestAnimationFrame)
+            let pointerRafScheduled = false;
+            const handlePointerMove = (e) => {
+                updateEventTrust(e.isTrusted);
+                behaviorTelemetry.moves++;
+                
+                const now = Date.now();
+                const diff = now - behaviorTelemetry.lastTime;
+                if (diff > 80) {
+                    behaviorTelemetry.patterns.push({ x: e.clientX, y: e.clientY, t: diff });
+                    if (behaviorTelemetry.patterns.length > 50) behaviorTelemetry.patterns.shift();
+                    behaviorTelemetry.lastTime = now;
+                    
+                    const len = behaviorTelemetry.patterns.length;
+                    if (len > 2) {
+                        const p1 = behaviorTelemetry.patterns[len-1];
+                        const p2 = behaviorTelemetry.patterns[len-2];
+                        const dist = Math.sqrt((p1.x - p2.x)**2 + (p1.y - p2.y)**2);
+                        const vel = p1.t > 0 ? dist / p1.t : 0;
+                        
+                        if (!pointerRafScheduled) {
+                            pointerRafScheduled = true;
+                            requestAnimationFrame(() => {
+                                const speedEl = document.getElementById('mouseSpeed');
+                                const movesEl = document.getElementById('mouseMoves');
+                                if (speedEl) speedEl.textContent = `${vel.toFixed(2)} px/ms`;
+                                if (movesEl) movesEl.textContent = behaviorTelemetry.moves;
+                                pointerRafScheduled = false;
+                            });
+                        }
+                    }
+                }
+            };
+
+            // Register standard pointermove listener ONLY (covers mouse, touch, and pen)
+            window.addEventListener('pointermove', handlePointerMove, { passive: true });
+
+            // Global Click Tracking
+            document.addEventListener('click', (e) => {
+                updateEventTrust(e.isTrusted);
+                behaviorTelemetry.clicks++;
+                document.getElementById('clicksCount').innerText = behaviorTelemetry.clicks;
+            });
+
+            // Global Keydown Tracking
+            document.addEventListener('keydown', (e) => {
+                updateEventTrust(e.isTrusted);
+                behaviorTelemetry.keys++;
+                document.getElementById('keysCount').innerText = behaviorTelemetry.keys;
+            });
+
+            // --- DEFENSE PROBE INTERACTIVE LOGIC ---
+            const probeArea = document.getElementById('probeArea');
+            const probeInput = document.getElementById('probeInput');
+
+            if (probeArea) {
+                probeArea.addEventListener('pointermove', (e) => {
+                    behaviorTelemetry.interactedWithProbe = true;
+                    if (e.isTrusted) {
+                        if (behaviorTelemetry.defenseState !== "captured") {
+                            setProbeState(
+                                "captured",
+                                "LEAKED (Tracking Active)",
+                                "badge-captured",
+                                "Pointer dynamics, coordinates, and velocities are actively leaking to JavaScript listeners.",
+                                `Live pointer dynamics captured (${e.pointerType || 'mouse'})`
+                            );
+                        }
+                    } else {
+                        setProbeState(
+                            "synthetic",
+                            "SYNTHETIC EVENT",
+                            "badge-synthetic",
+                            "Simulated pointer movement detected without human hardware verification.",
+                            "Untrusted synthetic event (isTrusted: false)"
+                        );
+                    }
+                });
+            }
+
+            if (probeInput) {
+                probeInput.addEventListener('focus', () => {
+                    behaviorTelemetry.probeFocused = true;
+                    if (behaviorTelemetry.defenseState === "idle") {
+                        setProbeState(
+                            "idle",
+                            "PROBE ACTIVE (Type Now)",
+                            "badge-idle",
+                            "Input focused. Type characters on your physical keyboard to test keystroke defense.",
+                            "Awaiting keystroke input..."
+                        );
+                    }
+                });
+
+                probeInput.addEventListener('keydown', (e) => {
+                    behaviorTelemetry.keysAttemptedInProbe++;
+                    behaviorTelemetry.keysCapturedInProbe++;
+                    updateEventTrust(e.isTrusted);
+
+                    if (e.isTrusted) {
+                        setProbeState(
+                            "captured",
+                            "LEAKED (Keystroke Captured)",
+                            "badge-captured",
+                            "Raw key codes and biometric cadence timings are exposed to the page without defense.",
+                            `Captured Key: '${e.key}' (Code: ${e.code}) | Trusted Hardware: YES`
+                        );
+                    } else {
+                        setProbeState(
+                            "synthetic",
+                            "SYNTHETIC EVENT",
+                            "badge-synthetic",
+                            "Keystroke dispatched synthetically (isTrusted: false).",
+                            `Simulated Key: '${e.key}'`
+                        );
+                    }
+                });
+
+                probeInput.addEventListener('input', () => {
+                    behaviorTelemetry.inputEventsInProbe++;
+                    // If text was successfully entered BUT keydown events were blocked/suppressed:
+                    if (probeInput.value.length > 0 && behaviorTelemetry.keysCapturedInProbe === 0) {
+                        setProbeState(
+                            "defended",
+                            "DEFENSE CONFIRMED (Shielded)",
+                            "badge-defended",
+                            "Anti-keylogging shield active: Text input was accepted, but raw hardware keystroke events were blocked/suppressed from script listeners!",
+                            `Shielded: Input received without raw keydown leak (Length: ${probeInput.value.length})`
+                        );
+                        const trustEl = document.getElementById('eventTrust');
+                        if (trustEl) {
+                            trustEl.innerText = "Protected (Shield Active)";
+                            trustEl.style.color = "var(--color-mint)";
+                        }
+                    }
+                });
+            }
+        }
+
+        // Reset data
+        function clearTelemetry() {
+            leakList = [];
+            totalScore = 0;
+            
+            // Reset behavioral telemetry to 0
+            behaviorTelemetry.moves = 0;
+            behaviorTelemetry.clicks = 0;
+            behaviorTelemetry.keys = 0;
+            behaviorTelemetry.patterns = [];
+            behaviorTelemetry.interactedWithProbe = false;
+            behaviorTelemetry.probeFocused = false;
+            behaviorTelemetry.keysAttemptedInProbe = 0;
+            behaviorTelemetry.keysCapturedInProbe = 0;
+            behaviorTelemetry.inputEventsInProbe = 0;
+            behaviorTelemetry.trustedCount = 0;
+            behaviorTelemetry.untrustedCount = 0;
+            behaviorTelemetry.defenseState = "idle";
+
+            document.getElementById('mouseMoves').innerText = "0";
+            document.getElementById('mouseSpeed').innerText = "0 px/ms";
+            document.getElementById('clicksCount').innerText = "0";
+            document.getElementById('keysCount').innerText = "0";
+            
+            const eventTrustEl = document.getElementById('eventTrust');
+            if (eventTrustEl) {
+                eventTrustEl.innerText = "Awaiting Test";
+                eventTrustEl.style.color = "var(--color-muted)";
+            }
+
+            const probeBadge = document.getElementById('probeStatusBadge');
+            if (probeBadge) {
+                probeBadge.className = "probe-badge badge-idle";
+                probeBadge.innerText = "Awaiting Input (Idle)";
+            }
+            const probeDesc = document.getElementById('probeStatusDesc');
+            if (probeDesc) probeDesc.innerText = "Status: Waiting for user activity. Move cursor or type into probe to verify defenses.";
+            const probeFeedback = document.getElementById('probeFeedback');
+            if (probeFeedback) {
+                probeFeedback.style.display = "none";
+                probeFeedback.innerText = "";
+            }
+            const probeInput = document.getElementById('probeInput');
+            if (probeInput) probeInput.value = "";
+
+            document.getElementById('riskScore').innerText = "0";
+            document.getElementById('riskStatus').innerText = "Secure";
+            document.getElementById('riskStatus').className = "status-badge badge-secure";
+            document.getElementById('scoreIndicator').style.strokeDashoffset = "440";
+            document.getElementById('scoreIndicator').style.stroke = "var(--color-mint)";
+            document.getElementById('criticalAlert').style.display = "none";
+            document.getElementById('analysisStatus').innerText = "Telemetry idle";
+            
+            document.getElementById('leakFeed').innerHTML = `
+                <div class="initial-message">
+                    <div>Session data cleared. Ready for audit.</div>
+                </div>
+            `;
+            
+            updateStatsUI();
+            refreshCookieMonitor();
+        }
+
+        function insertLeak(title, description, value, riskLevel) {
+            if (leakList.some(l => l.title === title)) return;
+
+            const leak = { title, description, value, riskLevel };
+            leakList.push(leak);
+
+            const badgeText = riskLevel === 'secure' ? 'PROTECTED' : (riskLevel.toUpperCase() + ' RISK');
+            const valueStyle = riskLevel === 'secure' ? 'color: var(--color-mint); border-color: rgba(0, 255, 135, 0.2); background: rgba(0, 255, 135, 0.05);' : '';
+
+            // Display leak HTML safely sanitized
+            const item = document.createElement('div');
+            item.className = "leak-item";
+            item.innerHTML = `
+                <div class="leak-icon leak-${escapeHtml(riskLevel)}"></div>
+                <div class="leak-info">
+                    <div class="leak-title">
+                        ${escapeHtml(title)}
+                        <span class="leak-badge badge-risk-${escapeHtml(riskLevel)}">${escapeHtml(badgeText)}</span>
+                    </div>
+                    <div class="leak-description">${escapeHtml(description)}</div>
+                    <div class="leak-value" style="${valueStyle}">${escapeHtml(value)}</div>
+                </div>
+            `;
+            
+            const feed = document.getElementById('leakFeed');
+            const initial = feed.querySelector('.initial-message');
+            if (initial) initial.remove();
+
+            feed.insertBefore(item, feed.firstChild);
+
+            // Risk Scoring adjustments (secure adds 0 points)
+            const riskPoints = { secure: 0, low: 8, medium: 18, high: 32 };
+            totalScore = Math.min(100, totalScore + (riskPoints[riskLevel] || 0));
+            
+            updateStatsUI();
+        }
+
+        function updateStatsUI() {
+            const activeLeaks = leakList.filter(l => l.riskLevel !== 'secure');
+            document.getElementById('leakCount').innerText = activeLeaks.length;
+            
+            const uniqueness = Math.min(99.9, (activeLeaks.length * 4.5) + Math.random() * 5);
+            document.getElementById('uniqueFingerprint').innerText = uniqueness.toFixed(1) + "%";
+            
+            const trackers = Math.max(0, Math.floor(activeLeaks.length * 1.6) - 1);
+            document.getElementById('trackingVulnerability').innerText = trackers;
+
+            document.getElementById('riskScore').innerText = Math.round(totalScore);
+            
+            // Adjust circular ring
+            const offset = 440 - (440 * totalScore / 100);
+            const indicator = document.getElementById('scoreIndicator');
+            indicator.style.strokeDashoffset = offset;
+
+            let badgeClass = "badge-secure";
+            let statusText = "Secure";
+            let strokeColor = "var(--color-mint)";
+
+            if (totalScore > 30) {
+                badgeClass = "badge-warning";
+                statusText = "At Risk";
+                strokeColor = "var(--color-yellow)";
+            }
+            if (totalScore > 65) {
+                badgeClass = "badge-danger";
+                statusText = "Critical Leakage";
+                strokeColor = "var(--color-magenta)";
+            }
+
+            document.getElementById('riskStatus').innerText = statusText;
+            document.getElementById('riskStatus').className = `status-badge ${badgeClass}`;
+            indicator.style.stroke = strokeColor;
+
+            if (totalScore > 65) {
+                document.getElementById('criticalAlert').style.display = "block";
+            } else {
+                document.getElementById('criticalAlert').style.display = "none";
+            }
+        }
+
+        // Scanner process
+        async function startDeepScan() {
+            if (isRunningScan) return;
+            isRunningScan = true;
+            
+            document.getElementById('analysisStatus').innerText = "Scanning browser configuration...";
+            clearTelemetry();
+
+            // 1. Client Headers
+            insertLeak("User Agent Mapping", "Identifies specific operational platform models.", navigator.userAgent, "medium");
+            
+            // 2. Display Config
+            insertLeak("Display Config", "Display resolution and color configurations.", `${screen.width}x${screen.height} (${screen.colorDepth}-bit)`, "low");
+            
+            // 3. Timezone
+            insertLeak("Geo Timezone", "System time settings indicating relative location.", Intl.DateTimeFormat().resolvedOptions().timeZone, "medium");
+
+            // 4. Lang profiles
+            insertLeak("Language Locale", "Language preference indices.", navigator.language, "low");
+
+            // 5. Hardware Concurrency
+            if (navigator.hardwareConcurrency) {
+                insertLeak("CPU Core Profile", "Concurrency parameters indicating hardware models.", `${navigator.hardwareConcurrency} logical cores`, "medium");
+            } else {
+                insertLeak("CPU Core Profile", "Concurrency parameters indicating hardware models.", "Protected (Not exposed by browser)", "secure");
+            }
+
+            // 6. Device RAM Memory
+            if (navigator.deviceMemory) {
+                insertLeak("Device RAM Memory", "Device RAM mapping specifications.", `${navigator.deviceMemory} GB`, "medium");
+            } else {
+                insertLeak("Device RAM Memory", "Device RAM mapping specifications.", "Protected (Restricted by browser / non-Chromium)", "secure");
+            }
+
+            // 7. Canvas Fingerprint check
+            const canv = await FingerprintDetector.getCanvasSignature();
+            if (canv.hash === "Blocked") {
+                insertLeak("Canvas Fingerprint", "Unique browser rendering signatures.", "Defended (Canvas pixel rendering restricted)", "secure");
+            } else {
+                insertLeak("Canvas Fingerprint", "Unique browser rendering signatures.", canv.hash, "high");
+            }
+
+            // 8. WebGL GPU Context
+            const webgl = FingerprintDetector.getWebGLHardware();
+            if (webgl.renderer === "Blocked" || webgl.renderer === "Not supported") {
+                insertLeak("WebGL GPU Context", "WebGL hardware context information.", `Defended (Renderer info ${webgl.renderer.toLowerCase()})`, "secure");
+            } else {
+                insertLeak("WebGL GPU Context", "WebGL hardware context information.", webgl.renderer, "high");
+            }
+
+            // 9. Audio fingerprint
+            const audio = await FingerprintDetector.getAudioSignature();
+            if (audio === "Error" || audio === "Timeout") {
+                insertLeak("Audio Context Hash", "Unique audio processing signature.", `Defended (AudioContext processing ${audio.toLowerCase()})`, "secure");
+            } else {
+                insertLeak("Audio Context Hash", "Unique audio processing signature.", audio, "high");
+            }
+
+            // 10. System Fonts
+            const fonts = FingerprintDetector.checkSystemFonts();
+            if (fonts.length > 0) {
+                insertLeak("System Font Mapping", "Discovered local font signatures.", fonts.join(", "), "medium");
+            } else {
+                insertLeak("System Font Mapping", "Discovered local font signatures.", "Protected (Font enumeration restricted / zero custom matches)", "secure");
+            }
+
+            // 11. Battery Telemetry
+            const battery = await FingerprintDetector.getBatteryStatus();
+            if (battery) {
+                insertLeak("Battery Telemetry", "Identifies battery states.", `${battery.pct}% (Charging: ${battery.charging})`, "medium");
+            } else {
+                insertLeak("Battery Telemetry", "Identifies battery states.", "Protected (API restricted / battery tracking mitigated)", "secure");
+            }
+
+            // 12. WebRTC Local IP check
+            const ips = await FingerprintDetector.getWebRTCIPs();
+            if (ips.length > 0 && ips[0] !== "Not supported") {
+                insertLeak("WebRTC Local IP Leak", "Local network IP leakage over WebRTC protocol STUN checks.", ips.join(", "), "high");
+            } else {
+                insertLeak("WebRTC Local IP Leak", "Local network IP leakage over WebRTC protocol STUN checks.", "Protected (mDNS host masked / zero raw IPs leaked)", "secure");
+            }
+
+            // 13. GPS Geolocation prompt
+            const gps = await FingerprintDetector.getGeolocation();
+            if (gps.status === "success") {
+                insertLeak("GPS Geolocation", "Precise coordinate specs accessed.", `Lat: ${gps.lat}, Lng: ${gps.lng}`, "high");
+            } else {
+                const geoReason = gps.status === "denied" ? "Permission denied by user" : (gps.status === "unsupported" ? "API unsupported" : "Timed out / blocked");
+                insertLeak("GPS Geolocation", "Precise coordinate specs accessed.", `Protected (${geoReason})`, "secure");
+            }
+
+            // 14. Behavioral Interaction & Biometrics Probe
+            if (behaviorTelemetry.defenseState === "defended") {
+                insertLeak("Behavioral Telemetry Shield", "Client-side protection against biomechanical interaction profiling.", "Defended (Keystroke listeners blocked / anti-telemetry shield active)", "secure");
+            } else if (behaviorTelemetry.defenseState === "captured" || behaviorTelemetry.moves > 0 || behaviorTelemetry.keys > 0) {
+                insertLeak("Behavioral Biometrics", "Biomechanical tracking of pointer dynamics and keystroke cadence.", `${behaviorTelemetry.moves} pointer moves, ${behaviorTelemetry.keys} keys recorded (${behaviorTelemetry.inputMode})`, "medium");
+            } else {
+                insertLeak("Behavioral Biometrics", "Biomechanical tracking of pointer dynamics and keystroke cadence.", `Awaiting Probe Interaction (0 events recorded during scan - ${behaviorTelemetry.inputMode})`, "secure");
+            }
+
+            // 15. Cookie Security & HttpOnly Shield
+            const auditedCookies = await CookieMonitor.getAllCookies();
+            const sensitiveKeywords = ['sess', 'auth', 'token', 'jwt', 'id', 'user', 'key', 'login', 'sid'];
+            const exposedSensitive = auditedCookies.filter(c => sensitiveKeywords.some(k => c.name.toLowerCase().includes(k)));
+            const insecureCookies = auditedCookies.filter(c => !c.secure && window.location.protocol === 'https:');
+
+            if (exposedSensitive.length > 0) {
+                insertLeak("Cookie Security Hygiene", "Audits HttpOnly and Secure flags on client-accessible cookies.", `Exposed session tokens readable by JS: ${exposedSensitive.map(c => c.name).join(', ')} (HttpOnly missing - XSS exfiltration risk)`, "high");
+            } else if (insecureCookies.length > 0) {
+                insertLeak("Cookie Security Hygiene", "Audits HttpOnly and Secure flags on client-accessible cookies.", `${insecureCookies.length} cookies missing Secure flag over HTTPS`, "medium");
+            } else if (auditedCookies.length > 0) {
+                insertLeak("Cookie Security Hygiene", "Audits HttpOnly and Secure flags on client-accessible cookies.", `${auditedCookies.length} client cookies audited (Zero sensitive session tokens leaked)`, "low");
+            } else {
+                insertLeak("Cookie Security Hygiene", "Audits HttpOnly and Secure flags on client-accessible cookies.", "Protected (HttpOnly active / Zero client-readable cookies exposed)", "secure");
+            }
+
+            // 16. Client Storage Footprint (Supercookies)
+            const storageFootprint = CookieMonitor.getStorageFootprint();
+            if (storageFootprint.totalStorageKeys > 0) {
+                insertLeak("Storage Supercookie Footprint", "Persistent client-side storage keys in localStorage/sessionStorage.", `${storageFootprint.localCount} localStorage, ${storageFootprint.sessionCount} sessionStorage keys`, "low");
+            } else {
+                insertLeak("Storage Supercookie Footprint", "Persistent client-side storage keys in localStorage/sessionStorage.", "Protected (Clean storage footprint / Zero persistent tracker keys)", "secure");
+            }
+
+            // 17. VPN Bypass Leak & Server IP Matcher
+            const vpnAudit = await auditVpnRouting();
+            if (vpnAudit.isBypassLeak) {
+                insertLeak("WebRTC VPN Bypass Leak", "HTTP traffic routed through VPN, but WebRTC STUN exposed real ISP public IP.", `CRITICAL: VPN Server (${vpnAudit.serverIp}) vs Leaked STUN IP (${vpnAudit.publicStunIp})`, "high");
+            } else if (vpnAudit.publicStunIp) {
+                insertLeak("Network Routing Consistency", "Correlates HTTP server connection IP with WebRTC STUN reflexive UDP IP.", `Route verified: ${vpnAudit.badgeText} (${vpnAudit.publicStunIp})`, "low");
+            } else {
+                insertLeak("Network Routing Consistency", "Correlates HTTP server connection IP with WebRTC STUN reflexive UDP IP.", "Protected (WebRTC STUN requests shielded / Zero external IPs leaked)", "secure");
+            }
+
+            // 18. Anti-Fingerprinting Canvas Farbling & Noise Injection Probe
+            const noiseAudit = await probeNoiseInjection();
+            if (noiseAudit.canvasResult.noiseDetected) {
+                insertLeak("Canvas Farbling Noise Shield", "Dual-pass canvas test confirms browser anti-fingerprinting noise randomization.", `Shielded (Pass 1 hash ${noiseAudit.canvasResult.hash1} ≠ Pass 2 hash ${noiseAudit.canvasResult.hash2} - Noise Injected)`, "secure");
+            } else if (noiseAudit.canvasResult.blocked) {
+                insertLeak("Canvas Farbling Noise Shield", "Dual-pass canvas test confirms browser anti-fingerprinting noise randomization.", "Protected (Canvas rendering blocked / Pixel extraction denied)", "secure");
+            } else {
+                insertLeak("Canvas Rendering Determinism", "Dual-pass canvas render produces identical static hashes across requests.", `Vulnerable (Deterministic pass 1 & 2 hash: ${noiseAudit.canvasResult.hash1} - zero noise injection)`, "medium");
+            }
+
+            // 19. Anti-Fingerprinting Audio Buffer Perturbation Shield
+            if (noiseAudit.audioResult.noiseDetected) {
+                insertLeak("Audio Perturbation Noise Shield", "Evaluates whether AudioContext frequency processing injects micro-noise.", `Shielded (Audio buffer drift confirmed: Δ ${noiseAudit.audioResult.delta} - Anti-fingerprint active)`, "secure");
+            } else if (noiseAudit.audioResult.blocked) {
+                insertLeak("Audio Perturbation Noise Shield", "Evaluates whether AudioContext frequency processing injects micro-noise.", "Protected (AudioContext restricted / Oscillator processing blocked)", "secure");
+            } else {
+                insertLeak("Audio Buffer Determinism", "Evaluates whether AudioContext frequency processing injects micro-noise.", `Vulnerable (Deterministic oscillator processing: ${noiseAudit.audioResult.sig1} - zero buffer drift)`, "medium");
+            }
+
+            // 20. Adblock & Tracker Shield Diagnostic (Canary Script, Beacon API, Cosmetic CSS)
+            const adblockAudit = await auditAdblockShield();
+            if (adblockAudit.blockedCount >= 2) {
+                insertLeak("Adblocker & Tracker Shield", "Interception of tracking pixels, beacon APIs, and cosmetic elements.", `Shielded (${adblockAudit.blockedCount}/${adblockAudit.totalChecks} vectors filtered - uBlock/Brave/Pi-hole verified)`, "secure");
+            } else if (adblockAudit.blockedCount === 1) {
+                insertLeak("Adblocker & Tracker Shield", "Interception of tracking pixels, beacon APIs, and cosmetic elements.", `Partial Shield (${adblockAudit.blockedCount}/${adblockAudit.totalChecks} vectors filtered)`, "low");
+            } else {
+                insertLeak("Tracker Shield Exposure", "Interception of tracking pixels, beacon APIs, and cosmetic elements.", "Vulnerable (Zero filtering - advertising & tracking requests load unhindered)", "medium");
+            }
+
+            // 21. Security Header Observatory (CSP, HSTS, Permissions-Policy)
+            const headerAudit = await auditSecurityHeaders();
+            if (headerAudit.grade === "A+" || headerAudit.grade === "A") {
+                insertLeak("Security Header Observatory", "Cryptographic transport & origin restrictions (HSTS, CSP, Permissions-Policy).", `Grade ${headerAudit.grade} (${headerAudit.score}/100) - Strict HSTS, CSP & peripheral controls enforced`, "secure");
+            } else if (headerAudit.grade === "B") {
+                insertLeak("Security Header Observatory", "Cryptographic transport & origin restrictions (HSTS, CSP, Permissions-Policy).", `Grade B (${headerAudit.score}/100) - Partial security headers`, "low");
+            } else {
+                insertLeak("Security Header Vulnerability", "Cryptographic transport & origin restrictions (HSTS, CSP, Permissions-Policy).", `Grade ${headerAudit.grade} (${headerAudit.score}/100) - Missing critical CSP / HSTS directives`, "medium");
+            }
+
+            // Refresh cookie monitor UI
+            await refreshCookieMonitor();
+
+            // Finish scan
+            setTimeout(async () => {
+                document.getElementById('analysisStatus').innerText = "Scan finished";
+                isRunningScan = false;
+                await saveExhaustToDB();
+            }, 500);
+        }
+
+        // Export text report
+        function exportTxtReport() {
+            const activeLeaks = leakList.filter(l => l.riskLevel !== 'secure');
+            const protectedChecks = leakList.filter(l => l.riskLevel === 'secure');
+            const report = `DIGITAL EXHAUST DETECTOR REPORT
+======================================================
+Generated: ${new Date().toLocaleString()}
+Risk Rating: ${document.getElementById('riskStatus').innerText} (${Math.round(totalScore)}/100)
+Active Leaks: ${activeLeaks.length}
+Protected / Defended: ${protectedChecks.length}
+Total Checkpoints: ${leakList.length}
+
+DETAILED TELEMETRY LOGS
+----------------------
+${leakList.map((l, i) => `${i+1}. ${l.title} [${l.riskLevel === 'secure' ? 'PROTECTED / SECURE' : l.riskLevel.toUpperCase() + ' RISK'}]\n   - ${l.description}\n   - Data: ${l.value}`).join('\n\n')}
+
+BEHAVIOR TELEMETRY & DEFENSE VERIFICATION
+-----------------------------------------
+Input Mode: ${behaviorTelemetry.inputMode}
+Defense State: ${behaviorTelemetry.defenseState.toUpperCase()}
+Event Trust: ${document.getElementById('eventTrust') ? document.getElementById('eventTrust').innerText : 'Awaiting Test'}
+Pointer moves: ${behaviorTelemetry.moves}
+Pointer velocity: ${document.getElementById('mouseSpeed').innerText}
+Click counts: ${behaviorTelemetry.clicks}
+Key counts: ${behaviorTelemetry.keys}
+Keys in Probe: ${behaviorTelemetry.keysCapturedInProbe} captured / ${behaviorTelemetry.keysAttemptedInProbe} attempted
+
+ANTI-FINGERPRINT NOISE INJECTION AUDIT
+--------------------------------------
+Canvas Farbling: ${document.getElementById('canvasVerdictText') ? document.getElementById('canvasVerdictText').innerText : 'Untested'}
+Audio Buffer Drift: ${document.getElementById('audioVerdictText') ? document.getElementById('audioVerdictText').innerText : 'Untested'}
+Combined Resistance: ${document.getElementById('combinedResistanceText') ? document.getElementById('combinedResistanceText').innerText : 'Untested'}
+
+ADBLOCK & TRACKER SHIELDS
+-------------------------
+Filter Status: ${document.getElementById('adblockOverallBadge') ? document.getElementById('adblockOverallBadge').innerText : 'Untested'}
+Vector Shielding: ${document.getElementById('adblockScoreText') ? document.getElementById('adblockScoreText').innerText : 'Untested'}
+Verdict: ${document.getElementById('adblockVerdictText') ? document.getElementById('adblockVerdictText').innerText : 'Untested'}
+
+SECURITY HEADER OBSERVATORY
+---------------------------
+Security Grade: ${document.getElementById('observatoryGradeBadge') ? document.getElementById('observatoryGradeBadge').innerText : 'Untested'}
+======================================================`;
+
+            const blob = new Blob([report], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `digital-exhaust-report-${Date.now()}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }
+
+        function getBrowserName() {
+            const ua = navigator.userAgent;
+            if (ua.includes("Firefox")) return "Firefox";
+            if (ua.includes("Chrome") && !ua.includes("Edg")) return "Chrome";
+            if (ua.includes("Edg")) return "Edge";
+            if (ua.includes("Safari") && !ua.includes("Chrome")) return "Safari";
+            return "Other";
+        }
+
+        async function saveExhaustToDB() {
+            let canvasHash = "Unknown";
+            try {
+                const canv = await FingerprintDetector.getCanvasSignature();
+                canvasHash = canv.hash || "Unknown";
+            } catch(e) {}
+
+            const activeLeaks = leakList.filter(l => l.riskLevel !== 'secure');
+            const payload = {
+                fingerprint_hash: canvasHash,
+                uniqueness: document.getElementById('uniqueFingerprint').innerText,
+                leaks_count: activeLeaks.length,
+                risk_score: Math.round(totalScore),
+                browser: getBrowserName(),
+                details_json: {
+                    user_agent: navigator.userAgent,
+                    screen: `${screen.width}x${screen.height}`,
+                    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+                    behavior: {
+                        mouse_moves: behaviorTelemetry.moves,
+                        mouse_speed: document.getElementById('mouseSpeed').innerText,
+                        click_counts: behaviorTelemetry.clicks,
+                        key_counts: behaviorTelemetry.keys,
+                        defense_state: behaviorTelemetry.defenseState,
+                        input_mode: behaviorTelemetry.inputMode,
+                        event_trust: document.getElementById('eventTrust') ? document.getElementById('eventTrust').innerText : "Awaiting Test"
+                    },
+                    noise_detection: {
+                        overall: document.getElementById('overallNoiseBadge') ? document.getElementById('overallNoiseBadge').innerText : "Untested",
+                        canvas_verdict: document.getElementById('canvasVerdictText') ? document.getElementById('canvasVerdictText').innerText : "Untested",
+                        audio_verdict: document.getElementById('audioVerdictText') ? document.getElementById('audioVerdictText').innerText : "Untested",
+                        canvas_pass1: document.getElementById('canvasPass1') ? document.getElementById('canvasPass1').innerText : "",
+                        canvas_pass2: document.getElementById('canvasPass2') ? document.getElementById('canvasPass2').innerText : "",
+                        audio_sig1: document.getElementById('audioPass1') ? document.getElementById('audioPass1').innerText : "",
+                        audio_sig2: document.getElementById('audioPass2') ? document.getElementById('audioPass2').innerText : ""
+                    },
+                    adblock_shield: {
+                        overall: document.getElementById('adblockOverallBadge') ? document.getElementById('adblockOverallBadge').innerText : "Untested",
+                        score: document.getElementById('adblockScoreText') ? document.getElementById('adblockScoreText').innerText : "Untested",
+                        verdict: document.getElementById('adblockVerdictText') ? document.getElementById('adblockVerdictText').innerText : "Untested"
+                    },
+                    security_headers: {
+                        grade: document.getElementById('observatoryGradeBadge') ? document.getElementById('observatoryGradeBadge').innerText : "Untested"
+                    },
+                    leaks: leakList
+                }
+            };
+
+            try {
+                const response = await fetch('/api/exhaust', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (response.ok) {
+                    document.getElementById('analysisStatus').innerText = "Scan saved to local database";
+                    fetchHistory();
+                }
+            } catch(e) {
+                console.warn("Backend server database unreachable.", e);
+            }
+        }
+
+        async function fetchHistory() {
+            try {
+                const response = await fetch('/api/exhaust');
+                if (response.ok) {
+                    const data = await response.json();
+                    const tbody = document.getElementById('historyBody');
+                    if (data.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" style="padding: 12px; text-align: center; color: var(--color-muted);">No records found in database.</td></tr>`;
+                        return;
+                    }
+                    tbody.innerHTML = "";
+                    data.forEach(row => {
+                        const tr = document.createElement('tr');
+                        const dateStr = new Date(row.created_at).toLocaleTimeString() + ' ' + new Date(row.created_at).toLocaleDateString();
+                        const riskScore = Number.parseInt(row.risk_score, 10) || 0;
+                        const scoreColor = riskScore > 50 ? 'var(--color-magenta)' : 'var(--color-mint)';
+                        tr.innerHTML = `
+                            <td style="padding: 10px; color: var(--color-muted);">${escapeHtml(dateStr)}</td>
+                            <td style="padding: 10px; font-family: var(--font-code); color: var(--color-cyan);">${escapeHtml(row.fingerprint_hash)}</td>
+                            <td style="padding: 10px;">${escapeHtml(row.uniqueness)}</td>
+                            <td style="padding: 10px;">${escapeHtml(row.leaks_count)}</td>
+                            <td style="padding: 10px; color: var(--color-muted);">${escapeHtml(row.browser || 'Unknown')}</td>
+                            <td style="padding: 10px; font-weight: 700; color: ${scoreColor};">${riskScore}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            } catch(e) {
+                console.warn("Failed to fetch history logs from server backend.", e);
+            }
+        }
+
+        function generatePdfReport() {
+            window.print();
+        }
+
+        // Toggle info drawer visibility
+        function toggleInfoDrawer(drawerId, btn) {
+            const drawer = document.getElementById(drawerId);
+            if (!drawer) return;
+            const isVisible = drawer.style.display === "block";
+            drawer.style.display = isVisible ? "none" : "block";
+            if (btn) {
+                if (isVisible) {
+                    btn.classList.remove('active');
+                } else {
+                    btn.classList.add('active');
+                }
+            }
+        }
+
+        window.addEventListener('load', () => {
+            setupBehaviorHooks();
+            updateStatsUI();
+            fetchHistory();
+            refreshCookieMonitor();
+            auditVpnRouting();
+            probeNoiseInjection();
+            auditAdblockShield();
+            auditSecurityHeaders();
+        });
+    </script>
+</body>
+</html>

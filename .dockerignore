@@ -1,0 +1,16 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.git
+.gitignore
+.vercel
+sentinel.db
+*.db
+*.sqlite
+*.sqlite3
+.env
+.DS_Store
